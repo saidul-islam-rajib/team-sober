@@ -61,4 +61,7 @@ export const SupportPolicy = {
   get channelLabel(): string {
     return configText('support.channelLabel');
   },
+  get requestQueueLimit(): number {
+    return configNumber('support.requestQueueLimit');
+  },
 };

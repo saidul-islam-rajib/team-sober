@@ -3,8 +3,10 @@ import {
   AccountBenefit,
   AccountStep,
   AccountView,
+  MAX_COURSE_LENGTH,
   MAX_EMAIL_LENGTH,
   MAX_NAME_LENGTH,
+  MAX_REQUEST_NOTE_LENGTH,
   REGISTRATION_STEPS,
   formatDay,
   formatRecoveryCode,
@@ -379,7 +381,15 @@ export function recoveryCodePage(
   );
 }
 
-export function recoverPage(state: FormState & { code?: string } = {}): string {
+export interface RecoverState extends FormState {
+  code?: string;
+  course?: string;
+  requestNote?: string;
+  requestError?: string;
+  requested?: boolean;
+}
+
+export function recoverPage(state: RecoverState = {}): string {
   const main = html`<div class="account-main">
     <p class="account-eyebrow">Account recovery</p>
     <h1>Reset your password</h1>
@@ -423,7 +433,7 @@ export function recoverPage(state: FormState & { code?: string } = {}): string {
       ${submitButton({ label: 'Set a new password' })}
     </form>
 
-    ${stuckPanel()}
+    ${stuckPanel(state)}
 
     <p class="account-alt account-alt-row">
       <span
@@ -441,20 +451,67 @@ export function recoverPage(state: FormState & { code?: string } = {}): string {
   );
 }
 
-function stuckPanel(): SafeHtml {
+function stuckPanel(state: RecoverState): SafeHtml {
   return html`<div class="account-stuck" id="stuck">
     <b>Lost the code as well?</b>
     <p>
       Nobody can read your code back to you — it is stored the same way your
       password is. What we can do is issue a one-time reset link that does the
-      same job. Ask on
+      same job. Ask the owner directly on
       <a href="${SupportPolicy.channelUrl}">${SupportPolicy.channelLabel}</a>,
-      from the address on the account, and say which course you were taking. You
-      will be sent a code that works once and expires after
+      or send the request below. Either way it goes to a person, who checks it is
+      really you before sending a code that works once and expires after
       ${RecoveryPolicy.resetLinkMinutes} minutes.
     </p>
-    <p>Your progress and certificates are untouched by any of this.</p>
+
+    ${state.requested ? requestSent() : requestForm(state)}
+
+    <p class="account-stuck-foot">
+      Your progress and certificates are untouched by any of this.
+    </p>
   </div>`;
+}
+
+function requestSent(): SafeHtml {
+  return banner({
+    kind: 'ok',
+    message:
+      'Thanks — if that address has an account, the owner will be in touch to get you back in. There is nothing more to do here.',
+  });
+}
+
+function requestForm(state: RecoverState): SafeHtml {
+  return html`${when(state.requestError, () =>
+    banner({ kind: 'error', message: state.requestError }),
+  )}
+  <form method="post" action="${AccountRoutes.recoverRequest.template}" class="stuck-form">
+    ${nextField(state.next)}
+    ${field({
+      name: 'email',
+      label: 'Email on the account',
+      type: 'email',
+      required: true,
+      autocomplete: 'email',
+      value: state.email,
+      placeholder: 'you@example.com',
+      attrs: { maxlength: MAX_EMAIL_LENGTH },
+    })}
+    ${field({
+      name: 'course',
+      label: 'Which course were you taking?',
+      value: state.course,
+      placeholder: 'e.g. Networking',
+      hint: 'Helps the owner find your account and confirm it is you.',
+      attrs: { maxlength: MAX_COURSE_LENGTH },
+    })}
+    <div class="ui-field">
+      <label for="field-request-note">Anything else worth knowing (optional)</label>
+      <textarea id="field-request-note" name="note" rows="3"
+                maxlength="${MAX_REQUEST_NOTE_LENGTH}"
+                placeholder="When you registered, roughly, or anything that identifies you.">${state.requestNote ?? ''}</textarea>
+    </div>
+    ${submitButton({ label: 'Send a recovery request', variant: 'ghost' })}
+  </form>`;
 }
 
 export function resetPage(state: FormState & { code?: string } = {}): string {

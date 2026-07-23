@@ -14,6 +14,7 @@ import type { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { AccountsService } from './accounts.service';
 import { AccountResetService } from './account-reset.service';
+import { AccountRecoveryRequestService } from './account-recovery-request.service';
 import { Account } from './account.model';
 import type { IssueResetInput } from './account.dto';
 import { formatRecoveryCode } from './recovery-code';
@@ -36,6 +37,7 @@ export class AccountsAdminController {
   constructor(
     private readonly accounts: AccountsService,
     private readonly resets: AccountResetService,
+    private readonly requests: AccountRecoveryRequestService,
     private readonly certificates: CertificatesService,
   ) {}
 
@@ -72,7 +74,27 @@ export class AccountsAdminController {
       })),
       query: q,
       total: matched.length,
+      requests: this.requests.pending().map((request) => ({
+        id: request.id,
+        email: request.email,
+        course: request.course,
+        note: request.note,
+        createdAt: request.createdAt,
+        accountId: this.accounts.findByEmail(request.email)?.id,
+      })),
     });
+  }
+
+  @Post('requests/:id/handle')
+  handleRequest(@Param('id') id: string, @Res() res: Response): void {
+    this.requests.markHandled(id);
+    res.redirect(AccountAdminRoutes.list.template);
+  }
+
+  @Post('requests/:id/dismiss')
+  dismissRequest(@Param('id') id: string, @Res() res: Response): void {
+    this.requests.dismiss(id);
+    res.redirect(AccountAdminRoutes.list.template);
   }
 
   @Get(':id')

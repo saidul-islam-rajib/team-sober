@@ -13,11 +13,13 @@ import type { Request, Response } from 'express';
 import { AccountsService } from './accounts.service';
 import { AccountSessionService } from './account-session.service';
 import { AccountResetService } from './account-reset.service';
+import { AccountRecoveryRequestService } from './account-recovery-request.service';
 import { AccountRoutes } from './account.routes';
 import { Account } from './account.model';
 import type {
   NextTarget,
   RecoveryInput,
+  RecoveryRequestInput,
   RegisterInput,
   RotateInput,
 } from './account.dto';
@@ -25,6 +27,7 @@ import { describeAccount } from './account.dto';
 import {
   normaliseEmail,
   recoveryProblem,
+  recoveryRequestProblem,
   registrationProblem,
   resetProblem,
   rotationProblem,
@@ -48,14 +51,23 @@ export class AccountsController {
     private readonly accounts: AccountsService,
     private readonly session: AccountSessionService,
     private readonly resets: AccountResetService,
+    private readonly requests: AccountRecoveryRequestService,
     private readonly certificates: CertificatesService,
     private readonly tutorials: TutorialsService,
     private readonly progress: ProgressService,
     private readonly throttle: LoginThrottleService,
   ) {}
 
+  private clientIp(req: Request): string {
+    return req.ip ?? req.socket?.remoteAddress ?? 'unknown';
+  }
+
   private throttleKey(req: Request): string {
-    return `account:${req.ip ?? req.socket?.remoteAddress ?? 'unknown'}`;
+    return `account:${this.clientIp(req)}`;
+  }
+
+  private requestKey(req: Request): string {
+    return `recovery-request:${this.clientIp(req)}`;
   }
 
   private currentId(req: Request): string {
@@ -301,6 +313,51 @@ export class AccountsController {
     res.send(
       recoveryCodePage(replacement, this.safeNext(body.next), 'recover'),
     );
+  }
+
+  @Post('recover-request')
+  @HttpCode(200)
+  @Header('Content-Type', 'text/html')
+  recoverRequest(
+    @Body() body: RecoveryRequestInput & NextTarget,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): void {
+    const problem = recoveryRequestProblem(body);
+
+    if (problem) {
+      res.send(
+        recoverPage({
+          requestError: problem,
+          email: body.email,
+          course: body.course,
+          requestNote: body.note,
+          next: body.next,
+        }),
+      );
+      return;
+    }
+
+    const key = this.requestKey(req);
+
+    if (this.throttle.retryAfter(key) > 0) {
+      res.send(
+        recoverPage({
+          requestError:
+            'You have sent a few of these already. Please wait a little before trying again.',
+          email: body.email,
+          course: body.course,
+          requestNote: body.note,
+          next: body.next,
+        }),
+      );
+      return;
+    }
+
+    this.requests.submit(body);
+    this.throttle.recordFailure(key);
+
+    res.send(recoverPage({ requested: true }));
   }
 
   @Post('recovery')
