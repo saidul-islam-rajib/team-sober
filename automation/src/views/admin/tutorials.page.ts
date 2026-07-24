@@ -33,11 +33,19 @@ function describeDwell(seconds: number): string {
   return `about ${minutes} minute${minutes === 1 ? '' : 's'} of reading`;
 }
 
+export interface CourseOffer {
+  slug: string;
+  title: string;
+  lessons: number;
+}
+
 export function tutorialsAdminPage(
   subjects: Subject[],
   stats: Map<string, SubjectStats>,
   drafts: Map<string, number>,
+  extras: { courses?: CourseOffer[]; flash?: string } = {},
 ): string {
+  const { courses = [], flash } = extras;
   const rows = subjects
     .map((subject, index) => {
       const stat = stats.get(subject.id) ?? {
@@ -75,14 +83,35 @@ export function tutorialsAdminPage(
     })
     .join('\n');
 
+  /*
+   * Importing is safe to repeat: it adds the lessons a course has gained and
+   * leaves everything already here alone. The confirm still states that, since
+   * "import" reads as destructive to anyone who has not been told otherwise.
+   */
+  const imports = courses
+    .map(
+      (course) => `<form class="inline-form" method="post"
+            action="/admin/tutorials/import/${esc(course.slug)}"
+            onsubmit="return confirm('Import “${esc(course.title).replace(/'/g, '&#39;')}”? Lessons already here are left untouched.')">
+        <button class="btn btn-sm" type="submit"
+                title="${course.lessons} lesson${course.lessons === 1 ? '' : 's'} written as Markdown files">
+          ↓ Import ${esc(course.title)}
+        </button>
+      </form>`,
+    )
+    .join('');
+
   const body = `
 ${CSS}
+  ${flash ? `<div class="flash ok">${esc(flash)}</div>` : ''}
+
   <div class="toolbar">
     <div>
       <h1 class="page-title" style="margin-bottom:.15rem">Tutorials</h1>
       <p style="font-size:.86rem;color:var(--ink-3)">Subjects hold ordered lessons.</p>
     </div>
     <div class="spacer"></div>
+    ${imports}
     <a class="btn btn-primary" href="/admin/tutorials/subjects/new">New subject</a>
   </div>
 

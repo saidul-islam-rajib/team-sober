@@ -3,8 +3,10 @@ import {
   Controller,
   Get,
   Header,
+  Logger,
   Param,
   Post,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -12,6 +14,8 @@ import type { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { TutorialsService } from './tutorials.service';
 import { SubjectStats, parseOrderIds } from './tutorial.model';
+import { findCourse, loadCourses } from './courses/course.loader';
+import { courseLessonCount } from './courses/course.model';
 import { chapterEditorPage } from '../views/admin/tutorials.page';
 import {
   lessonEditorPage,
@@ -53,11 +57,17 @@ interface ChapterBody {
 @Controller('admin/tutorials')
 @UseGuards(AuthGuard)
 export class TutorialsAdminController {
+  private readonly logger = new Logger(TutorialsAdminController.name);
+
   constructor(private readonly tutorials: TutorialsService) {}
 
   @Get()
   @Header('Content-Type', 'text/html')
-  index(): string {
+  index(
+    @Query('imported') imported?: string,
+    @Query('added') added?: string,
+    @Query('skipped') skipped?: string,
+  ): string {
     const subjects = this.tutorials.findSubjects(true);
 
     const stats = new Map<string, SubjectStats>();
@@ -73,7 +83,48 @@ export class TutorialsAdminController {
       );
     }
 
-    return tutorialsAdminPage(subjects, stats, drafts);
+    const flash =
+      imported === undefined
+        ? undefined
+        : Number(added)
+          ? `Imported ${added} lesson${added === '1' ? '' : 's'} into “${imported}”. ${skipped ?? 0} were already there.`
+          : `“${imported}” is already fully imported — nothing to add.`;
+
+    return tutorialsAdminPage(subjects, stats, drafts, {
+      courses: this.courses(),
+      flash,
+    });
+  }
+
+  /*
+   * Courses ship as Markdown files, so the button list comes from disk rather
+   * than from a hardcoded name. Reading it must never take the admin page down:
+   * a malformed course file shows as no button, and the log says why.
+   */
+  private courses(): { slug: string; title: string; lessons: number }[] {
+    try {
+      return loadCourses().map((course) => ({
+        slug: course.slug,
+        title: course.title,
+        lessons: courseLessonCount(course),
+      }));
+    } catch (error) {
+      this.logger.warn(
+        `Could not read the course content directory: ${(error as Error).message}`,
+      );
+      return [];
+    }
+  }
+
+  @Post('import/:slug')
+  importCourse(@Param('slug') slug: string, @Res() res: Response): void {
+    const course = findCourse(slug);
+    const result = this.tutorials.importCourse(course);
+
+    res.redirect(
+      `/admin/tutorials?imported=${encodeURIComponent(course.title)}` +
+        `&added=${result.lessonsAdded}&skipped=${result.lessonsSkipped}`,
+    );
   }
 
   @Get('subjects/new')

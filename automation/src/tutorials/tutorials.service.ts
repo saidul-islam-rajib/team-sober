@@ -40,7 +40,9 @@ import {
   searchTutorials,
   sortByOrder,
   subjectStats,
+  suggestedCompletionSeconds,
 } from './tutorial.model';
+import { Course, CourseImportResult } from './courses/course.model';
 
 @Injectable()
 export class TutorialsService {
@@ -375,6 +377,91 @@ export class TutorialsService {
         (sum, subject) => sum + this.stats(subject.id).minutes,
         0,
       ),
+    };
+  }
+
+  /*
+   * Import a course written as Markdown on disk.
+   *
+   * Idempotent by design: the subject is matched on slug, chapters on title,
+   * and lessons on the slug their title produces. Importing the same course
+   * twice adds nothing; importing it after new lesson files were written adds
+   * only those. That is what makes it safe to wire to a button an admin can
+   * press twice, and to run against an environment that already holds work.
+   *
+   * Existing lessons are left exactly as they are — an import never overwrites
+   * a lesson someone has since edited by hand.
+   */
+  importCourse(course: Course): CourseImportResult {
+    const subject =
+      this.subjects.find((candidate) => candidate.slug === course.slug) ??
+      this.createSubject({
+        title: course.title,
+        summary: course.summary,
+        icon: course.icon,
+        status: 'published',
+      });
+
+    const taken = new Set(
+      this.tutorials
+        .filter((lesson) => lesson.subjectId === subject.id)
+        .map((lesson) => lesson.slug),
+    );
+
+    let chaptersAdded = 0;
+    let lessonsAdded = 0;
+    let lessonsSkipped = 0;
+
+    for (const chapter of course.chapters) {
+      const existing = this.chapters.find(
+        (candidate) =>
+          candidate.subjectId === subject.id &&
+          candidate.title.toLowerCase() === chapter.title.toLowerCase(),
+      );
+
+      const target =
+        existing ??
+        this.createChapter({
+          subjectId: subject.id,
+          title: chapter.title,
+          summary: chapter.summary,
+        });
+
+      if (!existing) chaptersAdded += 1;
+
+      for (const lesson of chapter.lessons) {
+        if (taken.has(slugify(lesson.title))) {
+          lessonsSkipped += 1;
+          continue;
+        }
+
+        const created = this.createTutorial({
+          subjectId: subject.id,
+          chapterId: target.id,
+          completionSeconds: suggestedCompletionSeconds(lesson.content),
+          title: lesson.title,
+          summary: lesson.summary,
+          content: lesson.content,
+          difficulty: lesson.difficulty,
+          status: 'published',
+          tags: [...(lesson.tags ?? []), ...course.tags],
+        });
+
+        taken.add(created.slug);
+        lessonsAdded += 1;
+      }
+    }
+
+    this.logger.log(
+      `Imported "${course.title}": ${lessonsAdded} lesson(s) added, ${lessonsSkipped} already present`,
+    );
+
+    return {
+      subjectId: subject.id,
+      subjectSlug: subject.slug,
+      chaptersAdded,
+      lessonsAdded,
+      lessonsSkipped,
     };
   }
 
