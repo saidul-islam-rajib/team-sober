@@ -4,6 +4,7 @@ import {
   EMPTY_STATE_STYLES,
 } from '../shared/styles/components.styles';
 import { MARKDOWN_EDITOR_STYLES } from '../shared/components/markdown-editor';
+import { CHIP_CSS } from '../shared/scripts/chip-input';
 
 const SUBJECT_ROW_STYLES = `
   .subj-row {
@@ -32,10 +33,20 @@ const SUBJECT_ROW_STYLES = `
   .lesson-row .info span { font-size: 0.78rem; color: var(--ink-3); }
   .lesson-row .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
 
-  [data-sort-id] { cursor: grab; }
-  [data-sort-id]:active { cursor: grabbing; }
+  /* Only what can start a drag says so — a chapter is picked up by its bar. */
+  [data-sort-id][draggable="true"], [data-sort-handle] { cursor: grab; }
+  [data-sort-id][draggable="true"]:active, [data-sort-handle]:active { cursor: grabbing; }
   [data-sort-id].dragging { opacity: 0.45; border-style: dashed; border-color: var(--accent); }
   [data-sort-id] a, [data-sort-id] button { cursor: pointer; }
+
+  /* A chapter block has no border of its own, so it needs its own drag state. */
+  .chapter-block.dragging {
+    opacity: 0.5;
+    outline: 2px dashed var(--accent);
+    outline-offset: 4px;
+    border-radius: 10px;
+  }
+  .chapter-bar[data-sort-handle]:hover { background: var(--surface-2); border-radius: 0 8px 8px 0; }
 
   .grip {
     flex: none; color: var(--ink-3); font-size: 1rem; line-height: 1;
@@ -71,4 +82,5 @@ ${BADGE_STYLES}
 ${EMPTY_STATE_STYLES}
 ${SUBJECT_ROW_STYLES}
 ${MARKDOWN_EDITOR_STYLES}
+${CHIP_CSS}
 </style>`;

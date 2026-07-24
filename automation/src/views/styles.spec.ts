@@ -26,6 +26,7 @@ import {
   tutorialsAdminPage,
 } from './admin/tutorials.page';
 import { CONDITIONAL_FIELDS_SCRIPT } from './shared/scripts/conditional-fields';
+import { SORTABLE_SCRIPT } from './shared/scripts/sortable';
 import { PROGRESS_TRACKER_SCRIPT } from './shared/scripts/progress-tracker';
 import {
   Difficulty,
@@ -486,5 +487,110 @@ describe('enrolment policy field', () => {
     expect(CONDITIONAL_FIELDS_SCRIPT).toContain("getAttribute('data-reveals')");
     expect(CONDITIONAL_FIELDS_SCRIPT).not.toContain("'key'");
     expect(CONDITIONAL_FIELDS_SCRIPT).not.toContain('enrol');
+  });
+});
+
+describe('reordering chapters and lessons', () => {
+  const chapter = {
+    id: 'c1',
+    subjectId: subject.id,
+    title: 'Addressing',
+    summary: 'How a machine is identified.',
+    order: 1,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  const page = (): string =>
+    subjectLessonsPage(subject, [
+      { lessons: [{ ...lesson, id: 'loose' }] },
+      { chapter, lessons: [lesson] },
+    ]);
+
+  it('makes each chapter block a draggable item', () => {
+    const html = page();
+
+    expect(html).toContain('<div data-sortable="chapters">');
+    expect(html).toContain(`data-sort-id="${chapter.id}"`);
+  });
+
+  it('drags a chapter by its bar, not by its lessons', () => {
+    expect(page()).toContain(
+      '<div class="chapter-bar" draggable="true" data-sort-handle>',
+    );
+  });
+
+  it('leaves the loose lessons block where it is', () => {
+    const html = page();
+    const from = html.indexOf('chapter-bar loose');
+    const loose = html.slice(from, html.indexOf('</section>', from));
+
+    expect(loose).not.toContain('data-sort-handle');
+    expect(html.match(/data-sort-id="c1"/g)).toHaveLength(1);
+  });
+
+  it('gives each chapter its own lesson list', () => {
+    expect(page().match(/data-sortable="lessons"/g)).toHaveLength(2);
+  });
+
+  it('posts each order to its own endpoint', () => {
+    const html = page();
+
+    expect(html).toContain(
+      `action="/admin/tutorials/subjects/${subject.id}/reorder"\n        data-sortable-form="lessons"`,
+    );
+    expect(html).toContain(
+      `action="/admin/tutorials/subjects/${subject.id}/chapters/reorder"\n        data-sortable-form="chapters"`,
+    );
+  });
+
+  it('keeps the arrows as a keyboard-reachable alternative', () => {
+    const html = page();
+
+    expect(html).toContain('/admin/tutorials/chapters/c1/move');
+    expect(html).toContain('title="Move chapter up"');
+  });
+
+  it('confines a drag to the list it started in', () => {
+    expect(SORTABLE_SCRIPT).toContain('owner.container !== origin');
+  });
+
+  it('submits one combined order for lists sharing a name', () => {
+    expect(SORTABLE_SCRIPT).toContain('groupOf(container) !== group');
+    expect(SORTABLE_SCRIPT).toContain("ids.join(',')");
+  });
+
+  it('starts a drag from the handle when an item nominates one', () => {
+    expect(SORTABLE_SCRIPT).toContain(
+      "owner.item.querySelector('[data-sort-handle]') && !handle",
+    );
+  });
+});
+
+describe('lesson tags', () => {
+  const editor = (): string => lessonEditorPage([subject], subject, lesson);
+
+  it('uses the chip input the post and project editors use', () => {
+    const html = editor();
+
+    expect(html).toContain(
+      'class="chip-input" id="tags-box" data-target="tags"',
+    );
+    expect(html).toContain('data-sep="comma"');
+    expect(html).toContain('<input type="hidden" id="tags" name="tags"');
+  });
+
+  it('keeps posting the same comma separated value', () => {
+    expect(
+      lessonEditorPage([subject], subject, {
+        ...lesson,
+        tags: ['networking', 'dns'],
+      }),
+    ).toContain('name="tags" value="networking, dns"');
+  });
+
+  it('ships the chip script and its styles', () => {
+    expect(editor()).toContain('.chip-input {');
+    expect(editor()).toContain("querySelectorAll('.chip-input')");
   });
 });
