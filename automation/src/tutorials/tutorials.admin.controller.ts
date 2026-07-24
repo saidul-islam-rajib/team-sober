@@ -230,24 +230,61 @@ export class TutorialsAdminController {
     @Body() body: ChapterBody,
     @Res() res: Response,
   ): void {
-    this.tutorials.createChapter({
+    const chapter = this.tutorials.createChapter({
       subjectId: id,
       title: body.title ?? '',
       summary: body.summary,
     });
 
-    res.redirect(`/admin/tutorials/subjects/${id}`);
+    // Straight to the chapter, where its lessons can be added without a detour.
+    res.redirect(`/admin/tutorials/chapters/${chapter.id}/edit?created=1`);
   }
 
   @Get('chapters/:id/edit')
   @Header('Content-Type', 'text/html')
-  editChapter(@Param('id') id: string): string {
+  editChapter(
+    @Param('id') id: string,
+    @Query('created') created?: string,
+    @Query('added') added?: string,
+    @Query('saved') saved?: string,
+  ): string {
     const chapter = this.tutorials.findChapterById(id);
+
+    const flash =
+      added !== undefined
+        ? 'Lesson added as a draft. Open it to write the content.'
+        : created !== undefined
+          ? 'Chapter created. Add its lessons below.'
+          : saved !== undefined
+            ? 'Chapter saved.'
+            : undefined;
 
     return chapterEditorPage(
       this.tutorials.findSubjectById(chapter.subjectId),
       chapter,
+      this.tutorials.chapterLessons(id),
+      flash,
     );
+  }
+
+  @Post('chapters/:id/lessons')
+  addChapterLesson(
+    @Param('id') id: string,
+    @Body() body: LessonBody,
+    @Res() res: Response,
+  ): void {
+    const chapter = this.tutorials.findChapterById(id);
+
+    this.tutorials.createTutorial({
+      subjectId: chapter.subjectId,
+      chapterId: chapter.id,
+      title: body.title ?? '',
+      difficulty: body.difficulty,
+      content: '',
+      status: 'draft',
+    });
+
+    res.redirect(`/admin/tutorials/chapters/${id}/edit?added=1`);
   }
 
   @Post('chapters/:id/edit')
@@ -256,13 +293,14 @@ export class TutorialsAdminController {
     @Body() body: ChapterBody,
     @Res() res: Response,
   ): void {
-    const chapter = this.tutorials.updateChapter(id, {
+    this.tutorials.updateChapter(id, {
       subjectId: '',
       title: body.title ?? '',
       summary: body.summary,
     });
 
-    res.redirect(`/admin/tutorials/subjects/${chapter.subjectId}`);
+    // Stay put: the chapter's lessons are managed on this page.
+    res.redirect(`/admin/tutorials/chapters/${id}/edit?saved=1`);
   }
 
   @Post('chapters/:id/move')
@@ -287,13 +325,17 @@ export class TutorialsAdminController {
 
   @Get('subjects/:id/lessons/new')
   @Header('Content-Type', 'text/html')
-  newLesson(@Param('id') id: string): string {
+  newLesson(
+    @Param('id') id: string,
+    @Query('chapterId') chapterId?: string,
+  ): string {
     const subject = this.tutorials.findSubjectById(id);
     return lessonEditorPage(
       this.tutorials.findSubjects(true),
       subject,
       undefined,
       this.tutorials.subjectChapters(id),
+      chapterId,
     );
   }
 

@@ -20,6 +20,7 @@ import { ContentPolicy } from '../shared/config/policies';
 
 const SIDEBAR_TAG_LIMIT = ContentPolicy.sidebarTagLimit;
 import {
+  chapterEditorPage,
   lessonEditorPage,
   subjectEditorPage,
   subjectLessonsPage,
@@ -563,6 +564,94 @@ describe('reordering chapters and lessons', () => {
   it('starts a drag from the handle when an item nominates one', () => {
     expect(SORTABLE_SCRIPT).toContain(
       "owner.item.querySelector('[data-sort-handle]') && !handle",
+    );
+  });
+});
+
+describe('lessons inside the chapter editor', () => {
+  const chapter = {
+    id: 'c1',
+    subjectId: subject.id,
+    title: 'Addressing',
+    summary: 'How a machine is identified.',
+    order: 1,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  const editing = (lessons: Tutorial[] = [], flash?: string): string =>
+    chapterEditorPage(subject, chapter, lessons, flash);
+
+  it('offers nothing to add before the chapter exists', () => {
+    const html = chapterEditorPage(subject);
+
+    expect(html).not.toContain('<details class="chapter-lessons"');
+    expect(html).not.toContain('/lessons"');
+    expect(html).toContain('Save the chapter and you can add its lessons here');
+  });
+
+  it('collapses the lesson list, open by default', () => {
+    const html = editing([lesson]);
+
+    expect(html).toContain('<details class="chapter-lessons" open>');
+    expect(html).toContain('Lessons in this chapter');
+  });
+
+  it('counts the lessons in the summary and the subtitle', () => {
+    const html = editing([lesson, { ...lesson, id: 't2', title: 'Second' }]);
+
+    expect(html).toContain('<span class="count">2</span>');
+    expect(html).toContain('2 lessons in this chapter.');
+  });
+
+  it('lists each lesson with a way to open it', () => {
+    const html = editing([lesson]);
+
+    expect(html).toContain('What an IP address is');
+    expect(html).toContain('href="/admin/tutorials/lessons/t1/edit"');
+  });
+
+  it('flags a lesson that has no content yet', () => {
+    const html = editing([{ ...lesson, content: '' }]);
+
+    expect(html).toContain('no content yet');
+  });
+
+  it('adds a lesson straight into this chapter', () => {
+    const html = editing([]);
+
+    expect(html).toContain('action="/admin/tutorials/chapters/c1/lessons"');
+    expect(html).toContain('name="title"');
+    expect(html).toContain('name="difficulty"');
+    expect(html).toContain('Added as a draft at the end of this chapter.');
+  });
+
+  it('says where to go when the chapter is still empty', () => {
+    expect(editing([])).toContain('No lessons yet. Add the first one below.');
+  });
+
+  it('keeps a route to the full editor, scoped to this chapter', () => {
+    expect(editing([])).toContain(
+      `href="/admin/tutorials/subjects/${subject.id}/lessons/new?chapterId=c1"`,
+    );
+  });
+
+  it('preselects that chapter in the full editor', () => {
+    const html = lessonEditorPage(
+      [subject],
+      subject,
+      undefined,
+      [chapter],
+      'c1',
+    );
+
+    expect(html).toContain('<option value="c1" selected>Addressing</option>');
+    expect(html).not.toContain('<option value="" selected>No chapter</option>');
+  });
+
+  it('shows what just happened', () => {
+    expect(editing([], 'Chapter created. Add its lessons below.')).toContain(
+      '<div class="flash ok">Chapter created. Add its lessons below.</div>',
     );
   });
 });

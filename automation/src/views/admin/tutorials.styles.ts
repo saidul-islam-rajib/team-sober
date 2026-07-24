@@ -72,6 +72,45 @@ const SUBJECT_ROW_STYLES = `
   .chapter-bar .actions { display: flex; gap: 0.35rem; align-items: center; }
   .chapter-block .lesson-row { margin-left: 1.1rem; }
 
+  /* ---------- lessons inside the chapter editor ---------- */
+  .chapter-lessons {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface); margin-bottom: 1.5rem;
+  }
+  .chapter-lessons > summary {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.85rem 1.1rem; cursor: pointer; list-style: none;
+    font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--ink-3); font-weight: 700;
+  }
+  .chapter-lessons > summary::-webkit-details-marker { display: none; }
+  /* A rotating caret reads as open or closed without needing the native marker. */
+  .chapter-lessons > summary::before {
+    content: "›"; font-size: 1.1rem; line-height: 1;
+    transition: transform .18s; color: var(--ink-3);
+  }
+  .chapter-lessons[open] > summary::before { transform: rotate(90deg); }
+  .chapter-lessons > summary:hover { color: var(--ink); }
+  .chapter-lessons > summary .count {
+    margin-left: auto; font-variant-numeric: tabular-nums;
+    border: 1px solid var(--border); border-radius: 100px;
+    padding: 0.05rem 0.55rem; color: var(--ink-3);
+  }
+  .chapter-lessons-body { padding: 0 1.1rem 1.1rem; }
+  .chapter-lessons .lesson-row { margin-left: 0; background: var(--surface-2); }
+
+  .quick-add {
+    border-top: 1px dashed var(--border); margin-top: 1rem; padding-top: 1rem;
+  }
+  .quick-add-row {
+    display: flex; gap: 0.6rem; align-items: flex-end; flex-wrap: wrap;
+  }
+  .quick-add-row .btn { height: 2.55rem; }
+  @media (max-width: 600px) {
+    .quick-add-row > * { width: 100%; }
+    .quick-add-row .btn { justify-content: center; }
+  }
+
 
 `;
 

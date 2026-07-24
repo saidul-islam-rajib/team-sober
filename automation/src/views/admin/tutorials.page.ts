@@ -381,7 +381,83 @@ ${CSS}
   });
 }
 
-export function chapterEditorPage(subject: Subject, chapter?: Chapter): string {
+/*
+ * The lessons a chapter already holds, with a form to add another without
+ * leaving the page. A quick-add carries a title and nothing else, so the lesson
+ * arrives as a draft: it is a placeholder in the running order until someone
+ * opens it and writes the content, and a draft cannot reach readers empty.
+ */
+function chapterLessonsPanel(chapter: Chapter, lessons: Tutorial[]): string {
+  const rows = lessons
+    .map(
+      (lesson, index) => `<div class="lesson-row">
+        <span class="num">${index + 1}</span>
+        <div class="info">
+          <b>${esc(lesson.title)}</b>
+          <span>
+            ${esc(DIFFICULTY_LABELS[lesson.difficulty])}
+            · ${readingMinutes(lesson.content)} min
+            ${lesson.content.trim() ? '' : '· <em>no content yet</em>'}
+          </span>
+        </div>
+        ${statusPill(lesson.status)}
+        <div class="actions">
+          <form class="inline-form" method="post" action="/admin/tutorials/lessons/${esc(lesson.id)}/move">
+            <input type="hidden" name="direction" value="up" />
+            <button class="move" type="submit" title="Move up" ${index === 0 ? 'disabled' : ''}>↑</button>
+          </form>
+          <form class="inline-form" method="post" action="/admin/tutorials/lessons/${esc(lesson.id)}/move">
+            <input type="hidden" name="direction" value="down" />
+            <button class="move" type="submit" title="Move down" ${index === lessons.length - 1 ? 'disabled' : ''}>↓</button>
+          </form>
+          <a class="btn btn-sm" href="/admin/tutorials/lessons/${esc(lesson.id)}/edit">Edit</a>
+        </div>
+      </div>`,
+    )
+    .join('\n');
+
+  const levels = DIFFICULTIES.map(
+    (level) =>
+      `<option value="${level}"${level === 'beginner' ? ' selected' : ''}>${DIFFICULTY_LABELS[level]}</option>`,
+  ).join('');
+
+  return `<details class="chapter-lessons" open>
+    <summary>
+      <span>Lessons in this chapter</span>
+      <span class="count">${lessons.length}</span>
+    </summary>
+
+    <div class="chapter-lessons-body">
+      ${lessons.length ? rows : '<p class="hint" style="margin:0 0 1rem">No lessons yet. Add the first one below.</p>'}
+
+      <form class="quick-add" method="post" action="/admin/tutorials/chapters/${esc(chapter.id)}/lessons">
+        <div class="quick-add-row">
+          <div class="field" style="margin:0;flex:1;min-width:220px">
+            <label for="lesson-title">New lesson title</label>
+            <input type="text" id="lesson-title" name="title" required
+                   placeholder="What an IP address actually is" />
+          </div>
+          <div class="field" style="margin:0;width:9rem">
+            <label for="lesson-difficulty">Difficulty</label>
+            <select id="lesson-difficulty" name="difficulty">${levels}</select>
+          </div>
+          <button class="btn" type="submit">＋ Add lesson</button>
+        </div>
+        <p class="hint">
+          Added as a draft at the end of this chapter. Open it to write the
+          content, then publish it from the lesson editor.
+        </p>
+      </form>
+    </div>
+  </details>`;
+}
+
+export function chapterEditorPage(
+  subject: Subject,
+  chapter?: Chapter,
+  lessons: Tutorial[] = [],
+  flash?: string,
+): string {
   const editing = Boolean(chapter);
   const action = editing
     ? `/admin/tutorials/chapters/${esc(chapter!.id)}/edit`
@@ -395,8 +471,19 @@ ${CSS}
     <div>
       <a class="back-link" href="/admin/tutorials/subjects/${esc(subject.id)}">← Back to ${esc(subject.title)}</a>
       <h1 class="page-title" style="margin-bottom:.15rem">${editing ? 'Edit chapter' : 'New chapter'}</h1>
+      ${editing ? `<p class="subtitle">${lessons.length} ${lessons.length === 1 ? 'lesson' : 'lessons'} in this chapter.</p>` : ''}
     </div>
+    ${
+      editing
+        ? `<div class="spacer"></div>
+           <a class="btn" href="/admin/tutorials/subjects/${esc(subject.id)}/lessons/new?chapterId=${esc(chapter!.id)}">
+             Write a full lesson
+           </a>`
+        : ''
+    }
   </div>
+
+  ${flash ? `<div class="flash ok">${esc(flash)}</div>` : ''}
 
   <form method="post" action="${action}">
     <div class="form-grid">
@@ -423,11 +510,17 @@ ${CSS}
           <button class="btn btn-primary" type="submit" style="width:100%">
             ${editing ? 'Save chapter' : 'Create chapter'}
           </button>
-          ${editing ? '<p class="hint" style="margin-top:.75rem">Deleting a chapter keeps its lessons; they move out of any chapter.</p>' : ''}
+          ${
+            editing
+              ? '<p class="hint" style="margin-top:.75rem">Deleting a chapter keeps its lessons; they move out of any chapter.</p>'
+              : '<p class="hint" style="margin-top:.75rem">Save the chapter and you can add its lessons here straight away.</p>'
+          }
         </div>
       </div>
     </div>
   </form>
+
+  ${editing ? chapterLessonsPanel(chapter!, lessons) : ''}
 
   ${
     editing
@@ -454,6 +547,8 @@ export function lessonEditorPage(
   subject: Subject,
   lesson?: Tutorial,
   chapters: Chapter[] = [],
+  /** Preselects the chapter when arriving from that chapter's editor. */
+  chapterId?: string,
 ): string {
   const editing = Boolean(lesson);
   const action = editing
@@ -464,11 +559,13 @@ export function lessonEditorPage(
 
   const dwell = lesson?.completionSeconds ?? DEFAULT_COMPLETION_SECONDS;
 
+  const inChapter = lesson?.chapterId || chapterId || '';
+
   const chapterOptions = [
-    `<option value="" ${lesson?.chapterId ? '' : 'selected'}>No chapter</option>`,
+    `<option value="" ${inChapter ? '' : 'selected'}>No chapter</option>`,
     ...chapters.map(
       (chapter) =>
-        `<option value="${esc(chapter.id)}" ${chapter.id === lesson?.chapterId ? 'selected' : ''}>${esc(chapter.title)}</option>`,
+        `<option value="${esc(chapter.id)}" ${chapter.id === inChapter ? 'selected' : ''}>${esc(chapter.title)}</option>`,
     ),
   ].join('');
 
