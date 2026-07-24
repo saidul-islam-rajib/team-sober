@@ -24,7 +24,9 @@ describe('front matter', () => {
   });
 
   it('keeps colons inside a value', () => {
-    const { data } = parseFrontMatter('---\nsummary: DNS: names to addresses\n---\nx');
+    const { data } = parseFrontMatter(
+      '---\nsummary: DNS: names to addresses\n---\nx',
+    );
 
     expect(data.summary).toBe('DNS: names to addresses');
   });
@@ -113,7 +115,9 @@ describe('courses on disk', () => {
   });
 
   it('returns nothing rather than throwing when the directory is absent', () => {
-    expect(loadCourses(join(tmpdir(), 'courses-that-do-not-exist'))).toEqual([]);
+    expect(loadCourses(join(tmpdir(), 'courses-that-do-not-exist'))).toEqual(
+      [],
+    );
   });
 });
 

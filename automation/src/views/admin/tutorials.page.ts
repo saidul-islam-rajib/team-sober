@@ -19,6 +19,7 @@ import {
   MARKDOWN_EDITOR_SCRIPT,
   markdownEditor,
 } from '../shared/components/markdown-editor';
+import { CHIP_JS } from '../shared/scripts/chip-input';
 import { SORTABLE_SCRIPT } from '../shared/scripts/sortable';
 import { CONDITIONAL_FIELDS_SCRIPT } from '../shared/scripts/conditional-fields';
 import { TUTORIALS_ADMIN_STYLES as STYLES } from './tutorials.styles';
@@ -83,11 +84,6 @@ export function tutorialsAdminPage(
     })
     .join('\n');
 
-  /*
-   * Importing is safe to repeat: it adds the lessons a course has gained and
-   * leaves everything already here alone. The confirm still states that, since
-   * "import" reads as destructive to anyone who has not been told otherwise.
-   */
   const imports = courses
     .map(
       (course) => `<form class="inline-form" method="post"
@@ -290,8 +286,14 @@ export function subjectLessonsPage(
         })
         .join('\n');
 
+      /*
+       * The bar is the drag handle, so picking a chapter up never starts from
+       * a lesson inside it. Loose lessons have no chapter to move, so that
+       * block carries no handle and stays where it is.
+       */
       const head = group.chapter
-        ? `<div class="chapter-bar">
+        ? `<div class="chapter-bar" draggable="true" data-sort-handle>
+             <span class="grip" aria-hidden="true">⠿</span>
              <div class="info">
                <b>${esc(group.chapter.title)}</b>
                <span>${group.lessons.length} ${group.lessons.length === 1 ? 'lesson' : 'lessons'}${group.chapter.summary ? ` · ${esc(group.chapter.summary)}` : ''}</span>
@@ -315,10 +317,19 @@ export function subjectLessonsPage(
              </div>
            </div>`;
 
-      return `<section class="chapter-block">
-        ${head}
-        ${group.lessons.length ? rows : '<p class="sort-hint" style="padding:.4rem .2rem">No lessons in this chapter yet.</p>'}
-      </section>`;
+      const body = `<div data-sortable="lessons">
+          ${group.lessons.length ? rows : '<p class="sort-hint" style="padding:.4rem .2rem">No lessons in this chapter yet.</p>'}
+        </div>`;
+
+      return group.chapter
+        ? `<section class="chapter-block" data-sort-id="${esc(group.chapter.id)}">
+             ${head}
+             ${body}
+           </section>`
+        : `<section class="chapter-block">
+             ${head}
+             ${body}
+           </section>`;
     })
     .join('\n');
 
@@ -336,13 +347,26 @@ ${CSS}
     <a class="btn btn-primary" href="/admin/tutorials/subjects/${esc(subject.id)}/lessons/new">New lesson</a>
   </div>
 
-  ${total > 1 ? '<p class="sort-hint">Drag a lesson to reorder it. Use the arrows to reorder chapters.</p>' : ''}
+  ${
+    total > 1 || chapterCount > 1
+      ? `<p class="sort-hint">
+           Drag a chapter by its bar to reorder chapters, or drag a lesson to reorder it
+           within its chapter. Move a lesson to another chapter from the lesson editor.
+         </p>`
+      : ''
+  }
 
-  <form method="post" action="/admin/tutorials/subjects/${esc(subject.id)}/reorder" data-sortable-form>
+  <form method="post" action="/admin/tutorials/subjects/${esc(subject.id)}/reorder"
+        data-sortable-form="lessons">
     <input type="hidden" name="order" value="" data-sortable-order />
   </form>
 
-  <div data-sortable>
+  <form method="post" action="/admin/tutorials/subjects/${esc(subject.id)}/chapters/reorder"
+        data-sortable-form="chapters">
+    <input type="hidden" name="order" value="" data-sortable-order />
+  </form>
+
+  <div data-sortable="chapters">
     ${total || chapterCount ? sections : emptyState('No lessons in this subject yet.')}
   </div>
 `;
@@ -551,10 +575,15 @@ ${CSS}
             </select>
           </div>
           <div class="field">
-            <label for="tags">Tags</label>
-            <input type="text" id="tags" name="tags" value="${v(lesson?.tags.join(', '))}"
-                   placeholder="networking, dns" />
-            <p class="hint">Comma separated.</p>
+            <label for="tags-box">Tags</label>
+            <div class="chip-input" id="tags-box" data-target="tags" data-sep="comma" data-max="8">
+              <input type="text" placeholder="Add a tag…" aria-label="Add a tag" />
+            </div>
+            <input type="hidden" id="tags" name="tags" value="${v(lesson?.tags.join(', '))}" />
+            <p class="hint">
+              Enter or comma to add, × to remove. Lowercased automatically.
+              <span class="chip-count"></span>
+            </p>
           </div>
           <button class="btn btn-primary" type="submit" style="width:100%">
             ${editing ? 'Save lesson' : 'Create lesson'}
@@ -576,7 +605,7 @@ ${CSS}
 
   return layout({
     title: editing ? 'Edit lesson · Admin' : 'New lesson · Admin',
-    body: body + MARKDOWN_EDITOR_SCRIPT + IMAGE_SKELETON,
+    body: body + MARKDOWN_EDITOR_SCRIPT + CHIP_JS + IMAGE_SKELETON,
     nav: adminNav('/admin/tutorials'),
     variant: 'admin',
     path: '/admin/tutorials',

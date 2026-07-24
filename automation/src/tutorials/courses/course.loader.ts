@@ -3,28 +3,6 @@ import { join } from 'path';
 import { Course, CourseChapter, CourseLesson } from './course.model';
 import { parseDifficulty } from '../tutorial.model';
 
-/*
- * Courses are written as Markdown on disk, one file per lesson, so a lesson can
- * be drafted, reviewed and diffed like any other source file:
- *
- *   content/courses/<course>/course.md            course front matter
- *   content/courses/<course>/01-chapter/_chapter.md
- *   content/courses/<course>/01-chapter/01-lesson.md
- *
- * Numeric filename prefixes set the order readers see; they are not part of any
- * slug. Each file opens with a front matter block:
- *
- *   ---
- *   title: What a data structure actually is
- *   summary: One sentence, shown in the lesson list.
- *   difficulty: beginner
- *   tags: dsa, arrays
- *   ---
- *
- * Everything after it is the lesson body, rendered by the same Markdown
- * pipeline as a lesson typed into the admin.
- */
-
 const FRONT_MATTER = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/;
 
 export interface FrontMatter {
@@ -79,7 +57,8 @@ function ordered(dir: string, wanted: 'dirs' | 'files'): string[] {
 function readLesson(file: string): CourseLesson {
   const { data, body } = parseFrontMatter(readFileSync(file, 'utf8'));
 
-  if (!data.title) throw new Error(`Lesson has no title in front matter: ${file}`);
+  if (!data.title)
+    throw new Error(`Lesson has no title in front matter: ${file}`);
   if (!body) throw new Error(`Lesson has no content: ${file}`);
 
   return {

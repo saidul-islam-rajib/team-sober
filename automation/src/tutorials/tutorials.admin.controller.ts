@@ -96,11 +96,6 @@ export class TutorialsAdminController {
     });
   }
 
-  /*
-   * Courses ship as Markdown files, so the button list comes from disk rather
-   * than from a hardcoded name. Reading it must never take the admin page down:
-   * a malformed course file shows as no button, and the log says why.
-   */
   private courses(): { slug: string; title: string; lessons: number }[] {
     try {
       return loadCourses().map((course) => ({
@@ -194,6 +189,16 @@ export class TutorialsAdminController {
     @Res() res: Response,
   ): void {
     this.tutorials.reorderTutorials(id, parseOrderIds(body.order));
+    res.redirect(`/admin/tutorials/subjects/${id}`);
+  }
+
+  @Post('subjects/:id/chapters/reorder')
+  reorderChapters(
+    @Param('id') id: string,
+    @Body() body: { order?: string },
+    @Res() res: Response,
+  ): void {
+    this.tutorials.reorderChapters(id, parseOrderIds(body.order));
     res.redirect(`/admin/tutorials/subjects/${id}`);
   }
 

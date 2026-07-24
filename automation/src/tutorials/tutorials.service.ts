@@ -380,18 +380,6 @@ export class TutorialsService {
     };
   }
 
-  /*
-   * Import a course written as Markdown on disk.
-   *
-   * Idempotent by design: the subject is matched on slug, chapters on title,
-   * and lessons on the slug their title produces. Importing the same course
-   * twice adds nothing; importing it after new lesson files were written adds
-   * only those. That is what makes it safe to wire to a button an admin can
-   * press twice, and to run against an environment that already holds work.
-   *
-   * Existing lessons are left exactly as they are — an import never overwrites
-   * a lesson someone has since edited by hand.
-   */
   importCourse(course: Course): CourseImportResult {
     const subject =
       this.subjects.find((candidate) => candidate.slug === course.slug) ??
