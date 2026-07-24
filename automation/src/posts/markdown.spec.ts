@@ -104,4 +104,45 @@ describe('renderMarkdown', () => {
   it('handles empty input', () => {
     expect(renderMarkdown('')).toBe('');
   });
+
+  describe('plain text', () => {
+    it('keeps the line breaks the author typed', () => {
+      const html = renderMarkdown('First line\nSecond line\nThird line');
+
+      expect(html.match(/<br\s*\/?>/g)).toHaveLength(2);
+      expect(html).toContain('First line');
+      expect(html).toContain('Third line');
+    });
+
+    it('keeps line breaks typed on Windows, which submit as CRLF', () => {
+      expect(renderMarkdown('First line\r\nSecond line')).toMatch(/<br\s*\/?>/);
+    });
+
+    it('still starts a new paragraph on a blank line', () => {
+      const html = renderMarkdown('One\n\nTwo');
+
+      expect(html.match(/<p>/g)).toHaveLength(2);
+      expect(html).not.toMatch(/<br\s*\/?>/);
+    });
+
+    it('does not break lines inside a code block', () => {
+      const html = renderMarkdown('```js\nconst a = 1;\nconst b = 2;\n```');
+
+      expect(html).not.toMatch(/<br\s*\/?>/);
+      expect(html).toContain('<code');
+    });
+
+    it('leaves list items as items rather than breaking within them', () => {
+      const html = renderMarkdown('- one\n- two');
+
+      expect(html.match(/<li>/g)).toHaveLength(2);
+      expect(html).not.toMatch(/<br\s*\/?>/);
+    });
+
+    it('renders a heading written straight after a line of prose', () => {
+      const html = renderMarkdown('Intro line\n## Heading');
+
+      expect(html).toMatch(/<h2[^>]*>Heading<\/h2>/);
+    });
+  });
 });

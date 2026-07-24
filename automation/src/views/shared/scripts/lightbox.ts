@@ -1,4 +1,3 @@
-
 export const LIGHTBOX_SCRIPT = `
 <script>
 (function () {
