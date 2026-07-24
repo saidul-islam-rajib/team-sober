@@ -9,9 +9,15 @@ import {
   isOngoing,
 } from '../../about/about.model';
 
+function thumbSrc(url: string): string {
+  return url.startsWith('/uploads/')
+    ? `/img/${url.slice('/uploads/'.length)}?w=400`
+    : url;
+}
+
 function thumb(url: string): string {
   return `<span class="shot-thumb" data-url="${esc(url)}">
-    <img src="${esc(url)}" alt="" />
+    <img src="${esc(thumbSrc(url))}" alt="" loading="lazy" decoding="async" />
     <button type="button" class="drop-shot" aria-label="Remove image">&times;</button>
   </span>`;
 }
@@ -454,9 +460,14 @@ ${ADMIN_ABOUT_CSS}
   var input = document.getElementById('photo-input');
   var status = document.getElementById('photo-status');
 
+  function thumbSrc(url) {
+    // Mirror the server helper: show a resized copy, keep the original in data-url.
+    return url.indexOf('/uploads/') === 0 ? '/img/' + url.slice(9) + '?w=400' : url;
+  }
+
   function thumbHtml(url) {
     return '<span class="shot-thumb" data-url="' + url + '">' +
-      '<img src="' + url + '" alt="" />' +
+      '<img src="' + thumbSrc(url) + '" alt="" loading="lazy" decoding="async" />' +
       '<button type="button" class="drop-shot" aria-label="Remove image">&times;</button>' +
       '</span>';
   }

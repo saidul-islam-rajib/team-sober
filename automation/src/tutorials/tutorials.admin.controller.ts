@@ -67,6 +67,7 @@ export class TutorialsAdminController {
     @Query('imported') imported?: string,
     @Query('added') added?: string,
     @Query('skipped') skipped?: string,
+    @Query('missing') missing?: string,
   ): string {
     const subjects = this.tutorials.findSubjects(true);
 
@@ -83,15 +84,22 @@ export class TutorialsAdminController {
       );
     }
 
+    const courses = this.courses();
+
     const flash =
-      imported === undefined
-        ? undefined
-        : Number(added)
-          ? `Imported ${added} lesson${added === '1' ? '' : 's'} into “${imported}”. ${skipped ?? 0} were already there.`
-          : `“${imported}” is already fully imported — nothing to add.`;
+      missing !== undefined
+        ? 'That course is no longer available to import.'
+        : imported === undefined
+          ? undefined
+          : Number(added)
+            ? `Imported ${added} lesson${added === '1' ? '' : 's'} into “${imported}”. ${skipped ?? 0} were already there.`
+            : `“${imported}” is already fully imported — nothing to add.`;
 
     return tutorialsAdminPage(subjects, stats, drafts, {
-      courses: this.courses(),
+      courses,
+      emptyCoursesNote: courses.length
+        ? undefined
+        : 'No importable courses found. Add one under content/courses to enable one-click import.',
       flash,
     });
   }
@@ -114,6 +122,12 @@ export class TutorialsAdminController {
   @Post('import/:slug')
   importCourse(@Param('slug') slug: string, @Res() res: Response): void {
     const course = findCourse(slug);
+
+    if (!course) {
+      res.redirect('/admin/tutorials?missing=1');
+      return;
+    }
+
     const result = this.tutorials.importCourse(course);
 
     res.redirect(

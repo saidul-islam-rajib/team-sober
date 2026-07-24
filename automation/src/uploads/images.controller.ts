@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { ALLOWED_WIDTHS, ImagesService } from './images.service';
+import { ImagePolicy } from '../shared/config/policies';
 
 @Controller('img')
 export class ImagesController {
@@ -15,7 +16,7 @@ export class ImagesController {
       return;
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Cache-Control', ImagePolicy.cacheControl);
     res.sendFile(path);
   }
 
@@ -37,7 +38,7 @@ export class ImagesController {
       return;
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Cache-Control', ImagePolicy.cacheControl);
     res.sendFile(path);
   }
 }

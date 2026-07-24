@@ -6,6 +6,7 @@ import express, { NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
 import { mkdirSync } from 'fs';
 import { AppModule } from './app.module';
+import { ImagePolicy } from './shared/config/policies';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -47,7 +48,11 @@ async function bootstrap() {
   mkdirSync(uploadDir, { recursive: true });
   app.use(
     '/uploads',
-    express.static(uploadDir, { maxAge: '1y', immutable: true }),
+    express.static(uploadDir, {
+      setHeaders: (res) => {
+        res.setHeader('Cache-Control', ImagePolicy.cacheControl);
+      },
+    }),
   );
 
   const port = process.env.PORT ?? 3000;

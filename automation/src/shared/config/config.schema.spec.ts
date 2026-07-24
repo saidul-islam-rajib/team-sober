@@ -30,6 +30,15 @@ describe('config schema', () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
+  it('offers an image cache retention that defaults to at least a week', () => {
+    const field = CONFIG_FIELDS.find((f) => f.key === 'media.imageCacheDays');
+
+    expect(field).toBeDefined();
+    expect(field?.kind).toBe('number');
+    expect(field?.default).toBeGreaterThanOrEqual(7);
+    expect((field as NumberField).min).toBeGreaterThanOrEqual(1);
+  });
+
   describe('coerceField', () => {
     it('rounds and clamps a number to its range', () => {
       const field = numberField({ min: 5, max: 20 });

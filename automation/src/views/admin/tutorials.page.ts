@@ -44,9 +44,13 @@ export function tutorialsAdminPage(
   subjects: Subject[],
   stats: Map<string, SubjectStats>,
   drafts: Map<string, number>,
-  extras: { courses?: CourseOffer[]; flash?: string } = {},
+  extras: {
+    courses?: CourseOffer[];
+    flash?: string;
+    emptyCoursesNote?: string;
+  } = {},
 ): string {
-  const { courses = [], flash } = extras;
+  const { courses = [], flash, emptyCoursesNote } = extras;
   const rows = subjects
     .map((subject, index) => {
       const stat = stats.get(subject.id) ?? {
@@ -110,6 +114,8 @@ ${CSS}
     ${imports}
     <a class="btn btn-primary" href="/admin/tutorials/subjects/new">New subject</a>
   </div>
+
+  ${emptyCoursesNote ? `<p class="sort-hint" style="margin-top:-.5rem">${esc(emptyCoursesNote)}</p>` : ''}
 
   ${subjects.length > 1 ? '<p class="sort-hint">Drag a subject to reorder it, or use the arrows.</p>' : ''}
 

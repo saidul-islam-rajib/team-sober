@@ -297,3 +297,50 @@ describe('inline scripts', () => {
     expect(() => new Script(source)).toThrow();
   });
 });
+
+describe('about admin gallery thumbnails', () => {
+  const withPhoto = {
+    ...EMPTY_ABOUT,
+    gallery: [
+      {
+        urls: ['/uploads/holiday.jpg', 'https://example.com/x.png'],
+        caption: '',
+      },
+    ],
+  };
+
+  it('shows a resized copy of an uploaded image, not the full original', () => {
+    const html = aboutAdminPage(withPhoto);
+
+    expect(html).toContain('src="/img/holiday.jpg?w=400"');
+    expect(html).not.toContain('src="/uploads/holiday.jpg"');
+  });
+
+  it('keeps the original upload path as the saved value', () => {
+    expect(aboutAdminPage(withPhoto)).toContain(
+      'data-url="/uploads/holiday.jpg"',
+    );
+  });
+
+  it('lazy-loads thumbnails so a heavy gallery does not block the page', () => {
+    const html = aboutAdminPage(withPhoto);
+
+    expect(html).toContain('loading="lazy"');
+    expect(html).toContain('decoding="async"');
+  });
+
+  it('leaves an external image url untouched — we cannot resize it', () => {
+    expect(aboutAdminPage(withPhoto)).toContain(
+      'src="https://example.com/x.png"',
+    );
+  });
+
+  it('resizes images added client-side the same way', () => {
+    const [script] = inlineScripts(aboutAdminPage(withPhoto)).filter((s) =>
+      s.includes('thumbHtml'),
+    );
+
+    expect(script).toContain("'/img/' + url.slice(9) + '?w=400'");
+    expect(script).toContain('loading="lazy"');
+  });
+});
