@@ -186,6 +186,16 @@ export const CONFIG_GROUPS: ConfigGroup[] = [
         default: 'the about page',
         maxLength: 80,
       },
+      {
+        key: 'support.requestQueueLimit',
+        kind: 'number',
+        label: 'Recovery request queue size',
+        hint: 'How many recovery requests to keep before the oldest resolved ones are dropped.',
+        default: 50,
+        min: 10,
+        max: 500,
+        unit: 'requests',
+      },
     ],
   },
 ];

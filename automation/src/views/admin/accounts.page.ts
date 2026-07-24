@@ -36,10 +36,20 @@ export interface AccountRow {
   liveReset: boolean;
 }
 
+export interface PendingRequestView {
+  id: string;
+  email: string;
+  course: string;
+  note: string;
+  createdAt: string;
+  accountId?: string;
+}
+
 export interface AccountsListState {
   rows: AccountRow[];
   query?: string;
   total?: number;
+  requests?: PendingRequestView[];
 }
 
 export interface IssuedReset {
@@ -73,10 +83,60 @@ function render(title: string, body: SafeHtml, path: string): string {
   });
 }
 
+function requestsSection(requests: PendingRequestView[]): SafeHtml {
+  if (requests.length === 0) return html``;
+
+  return html`<section class="req-block">
+    <h2 class="section-label">
+      Recovery requests
+      ${pill({ label: String(requests.length), tone: 'warn' })}
+    </h2>
+    <p class="req-note">
+      People who have lost both their password and recovery code and asked for
+      help. Verify each one out of band before issuing a reset.
+    </p>
+    <ul class="req-list">
+      ${join(
+        requests.map(
+          (request) => html`<li class="req">
+            <div class="req-head">
+              <b>${request.email}</b>
+              <span class="when">${formatMoment(request.createdAt)}</span>
+            </div>
+            ${when(request.course, () => html`<p class="req-course">Course: ${request.course}</p>`)}
+            ${when(request.note, () => html`<p class="req-msg">${request.note}</p>`)}
+            <div class="req-actions">
+              ${when(request.accountId, () =>
+                linkButton({
+                  href: AccountAdminRoutes.detail.path({
+                    id: request.accountId as string,
+                  }),
+                  label: 'Open account & issue reset',
+                  variant: 'ghost',
+                  attrs: { class: 'btn btn-ghost btn-sm' },
+                }),
+              )}
+              ${when(!request.accountId, () => html`<span class="req-nomatch">No account for this email</span>`)}
+              <form method="post" action="${AccountAdminRoutes.handleRequest.path({ id: request.id })}">
+                ${submitButton({ label: 'Mark handled', variant: 'ghost', attrs: { class: 'btn btn-ghost btn-sm' } })}
+              </form>
+              <form method="post" action="${AccountAdminRoutes.dismissRequest.path({ id: request.id })}"
+                    onsubmit="return confirm('Dismiss this request?')">
+                ${submitButton({ label: 'Dismiss', variant: 'danger', attrs: { class: 'btn btn-danger btn-sm' } })}
+              </form>
+            </div>
+          </li>`,
+        ),
+      )}
+    </ul>
+  </section>`;
+}
+
 export function accountsAdminPage({
   rows,
   query = '',
   total = rows.length,
+  requests = [],
 }: AccountsListState): string {
   const columns: Column<AccountRow>[] = [
     {
@@ -123,6 +183,8 @@ export function accountsAdminPage({
     subtitle: `${total} account${total === 1 ? '' : 's'} · issue a reset link to somebody who has lost their password and their recovery code`,
     back: { href: '/admin', label: '← Back to dashboard' },
   })}
+
+    ${requestsSection(requests)}
 
     <form
       class="acct-search"

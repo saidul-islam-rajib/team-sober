@@ -9,6 +9,7 @@ export const AccountRoutes = {
   signIn: route(`${ACCOUNT}/sign-in`),
   signOut: route(`${ACCOUNT}/sign-out`),
   recover: route(`${ACCOUNT}/recover`),
+  recoverRequest: route(`${ACCOUNT}/recover-request`),
   rotateRecovery: route(`${ACCOUNT}/recovery`),
   reset: route(`${ACCOUNT}/reset`),
 } as const;
@@ -18,6 +19,8 @@ export const AccountAdminRoutes = {
   detail: route<['id']>(`${ADMIN_ACCOUNTS}/:id`),
   issueReset: route<['id']>(`${ADMIN_ACCOUNTS}/:id/reset`),
   revokeReset: route<['id']>(`${ADMIN_ACCOUNTS}/:id/revoke`),
+  handleRequest: route<['id']>(`${ADMIN_ACCOUNTS}/requests/:id/handle`),
+  dismissRequest: route<['id']>(`${ADMIN_ACCOUNTS}/requests/:id/dismiss`),
 } as const;
 
 export function accountUrl(

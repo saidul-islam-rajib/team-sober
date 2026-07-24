@@ -98,6 +98,16 @@ export const ACCOUNT_PUBLIC_CSS = `
 .account-stuck b { display: block; font-size: 0.9rem; color: var(--ink); }
 .account-stuck p { font-size: 0.83rem; color: var(--ink-3); line-height: 1.6; margin-top: 0.5rem; }
 .account-stuck a { color: var(--accent); font-weight: 600; }
+.stuck-form { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px solid var(--border); }
+.stuck-form textarea {
+  width: 100%; padding: 0.65rem 0.8rem; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 8px; font: inherit; resize: vertical;
+}
+.stuck-form textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.account-stuck-foot { border-top: 1px solid var(--border); margin-top: 1.1rem; padding-top: 0.9rem; }
 
 @media (max-width: 800px) {
   .account-shell { grid-template-columns: minmax(0, 1fr); }
@@ -138,4 +148,22 @@ export const ACCOUNT_ADMIN_CSS = `
 .trail b { font-size: 0.82rem; color: var(--ink); }
 .trail .note { font-size: 0.82rem; color: var(--ink-2); margin-top: 0.35rem; }
 .trail .when { font-size: 0.76rem; color: var(--ink-3); }
+
+.req-block { margin-bottom: 2rem; }
+.req-block .section-label { display: flex; align-items: center; gap: 0.5rem; }
+.req-note { font-size: 0.84rem; color: var(--ink-3); margin-bottom: 1rem; }
+.req-list { list-style: none; display: grid; gap: 0.6rem; }
+.req {
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--border));
+  border-radius: 12px; padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--warn) 5%, transparent);
+}
+.req-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.req-head b { color: var(--ink); font-size: 0.94rem; }
+.req-head .when { font-size: 0.76rem; color: var(--ink-3); }
+.req-course { font-size: 0.83rem; color: var(--ink-2); margin-top: 0.4rem; }
+.req-msg { font-size: 0.83rem; color: var(--ink-2); margin-top: 0.35rem; line-height: 1.5; white-space: pre-wrap; }
+.req-actions { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.75rem; }
+.req-actions form { display: inline; }
+.req-nomatch { font-size: 0.78rem; color: var(--ink-3); }
 `;

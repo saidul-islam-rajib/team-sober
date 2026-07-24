@@ -8,6 +8,7 @@ import { hasCodeLength } from './recovery-code';
 import {
   CredentialsInput,
   RecoveryInput,
+  RecoveryRequestInput,
   RegisterInput,
   RotateInput,
 } from './account.dto';
@@ -76,4 +77,13 @@ export function rotationProblem(input: RotateInput): string {
   return input.password
     ? ''
     : 'Enter your password to be given a new recovery code.';
+}
+
+export function recoveryRequestProblem(input: RecoveryRequestInput): string {
+  if (!validEmail(input.email)) return 'Enter the email address on the account.';
+  if (!(input.course ?? '').trim() && !(input.note ?? '').trim()) {
+    return 'Tell the owner which course you were taking, so they can find you.';
+  }
+
+  return '';
 }

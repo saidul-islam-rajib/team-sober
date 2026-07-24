@@ -3,6 +3,7 @@ import {
   BADGE_STYLES,
   EMPTY_STATE_STYLES,
 } from '../shared/styles/components.styles';
+import { MARKDOWN_EDITOR_STYLES } from '../shared/components/markdown-editor';
 
 const SUBJECT_ROW_STYLES = `
   .subj-row {
@@ -69,4 +70,5 @@ ${ADMIN_STYLES}
 ${BADGE_STYLES}
 ${EMPTY_STATE_STYLES}
 ${SUBJECT_ROW_STYLES}
+${MARKDOWN_EDITOR_STYLES}
 </style>`;

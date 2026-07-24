@@ -5,8 +5,14 @@ import {
   SHORT_WORD_LIMIT,
   STATUS_LABELS,
 } from '../../projects/project.model';
-import { adminNav, esc, layout } from '../shared/layout';
+import { IMAGE_SKELETON, adminNav, esc, layout } from '../shared/layout';
 import { CHIP_CSS, CHIP_JS } from '../shared/scripts/chip-input';
+import {
+  MARKDOWN_EDITOR_SCRIPT,
+  MARKDOWN_EDITOR_STYLES,
+  markdownEditor,
+} from '../shared/components/markdown-editor';
+import { WORD_COUNT_SCRIPT, wordCounter } from '../shared/scripts/word-count';
 
 const CSS = `
 <style>
@@ -83,23 +89,13 @@ const CSS = `
   }
   .check-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; }
   .check-row input { width: auto; }
-  .field-head {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: 0.5rem; margin-bottom: 0.4rem;
-  }
-  .field-head label { margin: 0; }
-  .word-count {
-    font-size: 0.74rem; color: var(--ink-3);
-    font-variant-numeric: tabular-nums;
-  }
-  .word-count.near { color: var(--warn); }
-  .word-count.over { color: var(--danger); font-weight: 700; }
   .toggle-row {
     display: inline-flex; align-items: center; gap: 0.45rem;
     font-size: 0.84rem; font-weight: 500; color: var(--ink-2);
     margin-top: 0.5rem; cursor: pointer; user-select: none;
   }
   .toggle-row input { width: auto; margin: 0; }
+${MARKDOWN_EDITOR_STYLES}
 ${CHIP_CSS}
 </style>`;
 
@@ -270,7 +266,7 @@ ${CSS}
           <div class="field">
             <div class="field-head">
               <label for="description">Short description</label>
-              <span class="word-count" data-for="description"></span>
+              ${wordCounter('description')}
             </div>
             <textarea id="description" name="description" rows="3"
                       data-limit="${SHORT_WORD_LIMIT}"
@@ -284,13 +280,15 @@ ${CSS}
           </div>
 
           <div class="field" style="margin-bottom:0">
-            <div class="field-head">
-              <label for="detailedDescription">Detailed description</label>
-              <span class="word-count" data-for="detailedDescription"></span>
-            </div>
-            <textarea id="detailedDescription" name="detailedDescription" rows="8"
-                      data-limit="${DETAILED_WORD_LIMIT}"
-                      placeholder="The full story. Markdown works — **bold**, ==highlight==, lists, links.">${v(project?.detailedDescription)}</textarea>
+            ${markdownEditor({
+              id: 'detailedDescription',
+              label: 'Detailed description',
+              value: project?.detailedDescription ?? '',
+              rows: 14,
+              limit: DETAILED_WORD_LIMIT,
+              placeholder:
+                'The full story. Markdown works — headings, images, lists, links.',
+            })}
             <label class="toggle-row">
               <input type="hidden" name="showDetailed" value="off" />
               <input type="checkbox" name="showDetailed" value="on"
@@ -456,28 +454,10 @@ ${CSS}
   });
 })();
 </script>
-<script>
-(function () {
-  // Live word count against the server-side cap. The server trims rather
-  // than rejecting, so this is guidance, not validation.
-  document.querySelectorAll('textarea[data-limit]').forEach(function (area) {
-    var limit = parseInt(area.getAttribute('data-limit'), 10);
-    var label = document.querySelector('.word-count[data-for="' + area.id + '"]');
-    if (!label) return;
-
-    function update() {
-      var words = area.value.trim().split(/\\s+/).filter(Boolean).length;
-      label.textContent = words + ' / ' + limit + ' words';
-      label.classList.toggle('near', words > limit * 0.8 && words <= limit);
-      label.classList.toggle('over', words > limit);
-    }
-
-    area.addEventListener('input', update);
-    update();
-  });
-})();
-</script>
-${CHIP_JS}`;
+${WORD_COUNT_SCRIPT}
+${MARKDOWN_EDITOR_SCRIPT}
+${CHIP_JS}
+${IMAGE_SKELETON}`;
 
   return layout({
     title: `${editing ? 'Edit' : 'New'} project — admin`,

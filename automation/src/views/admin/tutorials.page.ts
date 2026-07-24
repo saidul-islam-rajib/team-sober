@@ -13,8 +13,12 @@ import {
   formatDuration,
 } from '../../tutorials/tutorial.model';
 import { readingMinutes } from '../../posts/post.model';
-import { adminNav, esc, layout } from '../shared/layout';
+import { IMAGE_SKELETON, adminNav, esc, layout } from '../shared/layout';
 import { emptyState, statusPill } from '../shared/components';
+import {
+  MARKDOWN_EDITOR_SCRIPT,
+  markdownEditor,
+} from '../shared/components/markdown-editor';
 import { SORTABLE_SCRIPT } from '../shared/scripts/sortable';
 import { CONDITIONAL_FIELDS_SCRIPT } from '../shared/scripts/conditional-fields';
 import { TUTORIALS_ADMIN_STYLES as STYLES } from './tutorials.styles';
@@ -452,9 +456,15 @@ ${CSS}
                       placeholder="One sentence. Shown in the lesson list.">${v(lesson?.summary)}</textarea>
           </div>
           <div class="field" style="margin-bottom:0">
-            <label for="content">Content</label>
-            <textarea id="content" name="content" rows="22" required
-                      placeholder="Markdown. Headings, lists, tables and code blocks all work.">${v(lesson?.content)}</textarea>
+            ${markdownEditor({
+              id: 'content',
+              label: 'Content',
+              value: lesson?.content ?? '',
+              rows: 22,
+              required: true,
+              placeholder:
+                'Markdown. Headings, lists, tables, images and code blocks all work.',
+            })}
           </div>
         </div>
       </div>
@@ -537,7 +547,7 @@ ${CSS}
 
   return layout({
     title: editing ? 'Edit lesson · Admin' : 'New lesson · Admin',
-    body,
+    body: body + MARKDOWN_EDITOR_SCRIPT + IMAGE_SKELETON,
     nav: adminNav('/admin/tutorials'),
     variant: 'admin',
     path: '/admin/tutorials',

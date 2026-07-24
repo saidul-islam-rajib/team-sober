@@ -25,6 +25,12 @@ export interface IssueResetInput {
   note?: string;
 }
 
+export interface RecoveryRequestInput {
+  email?: string;
+  course?: string;
+  note?: string;
+}
+
 export interface NextTarget {
   next?: string;
 }

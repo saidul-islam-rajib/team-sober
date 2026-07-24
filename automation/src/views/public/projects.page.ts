@@ -8,6 +8,8 @@ import {
 } from '../../projects/project.model';
 import { getSettings } from '../../settings/settings.store';
 import { esc, IMAGE_SKELETON, layout } from '../shared/layout';
+import { PROSE_BUNDLE } from '../shared/styles/prose.styles';
+import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
 
 const PROJECTS_CSS = `
 <style>
@@ -127,30 +129,14 @@ const PROJECTS_CSS = `
   .fact-list dt { color: var(--ink-3); }
   .fact-list dd { color: var(--ink); font-weight: 600; text-align: right; }
 
-  .proj-detailed {
-    font-family: var(--serif); font-size: 1.06rem; line-height: 1.75;
-    color: var(--ink-2); margin: 0 0 2rem;
-  }
+${PROSE_BUNDLE}
+  /* The write-up sits beside a sidebar, so it runs a little tighter than an article. */
+  .proj-detailed { font-size: 1.06rem; margin: 0 0 2rem; }
   .proj-detailed > * + * { margin-top: 1.1rem; }
-  .proj-detailed h2 { font-size: 1.35rem; font-family: var(--serif); margin-top: 1.75rem; }
-  .proj-detailed h3 { font-size: 1.12rem; font-family: var(--serif); margin-top: 1.4rem; }
-  .proj-detailed ul, .proj-detailed ol { padding-left: 1.4rem; }
+  .proj-detailed h2 { font-size: 1.35rem; margin-top: 1.75rem; }
+  .proj-detailed h3 { font-size: 1.12rem; margin-top: 1.4rem; }
   .proj-detailed li + li { margin-top: 0.35rem; }
-  .proj-detailed a { color: var(--accent); text-decoration: underline; }
-  .proj-detailed strong { color: var(--ink); }
-  .proj-detailed mark {
-    background: color-mix(in srgb, var(--accent) 22%, transparent);
-    color: inherit; padding: 0.05em 0.25em; border-radius: 3px;
-  }
-  .proj-detailed code {
-    font-family: var(--mono); font-size: 0.86em; background: var(--surface-2);
-    border: 1px solid var(--border); padding: 0.1em 0.35em; border-radius: 5px;
-  }
-  .proj-detailed pre {
-    background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 10px; padding: 0.95rem 1.1rem; overflow-x: auto;
-  }
-  .proj-detailed pre code { background: none; border: 0; padding: 0; }
+  .proj-detailed img { margin: 1.5rem auto; max-height: 420px; }
 </style>`;
 
 const PROJECTS_HEAD = `${PROJECTS_CSS}
@@ -326,7 +312,7 @@ ${PROJECTS_HEAD}
 
       ${
         detailedHtml && project.showDetailed !== false
-          ? `<div class="proj-detailed">${detailedHtml}</div>`
+          ? `<div class="prose proj-detailed">${detailedHtml}</div>`
           : ''
       }
 
@@ -363,7 +349,7 @@ ${PROJECTS_HEAD}
     title: `${project.title} — ${s.authorName}`,
     description:
       project.description || `${project.title}, a project by ${s.authorName}.`,
-    body,
+    body: body + LIGHTBOX_SCRIPT,
     path: `/projects/${project.slug}`,
     image: project.coverUrl,
     ogType: 'article',
