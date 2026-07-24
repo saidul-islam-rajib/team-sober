@@ -381,12 +381,6 @@ ${CSS}
   });
 }
 
-/*
- * The lessons a chapter already holds, with a form to add another without
- * leaving the page. A quick-add carries a title and nothing else, so the lesson
- * arrives as a draft: it is a placeholder in the running order until someone
- * opens it and writes the content, and a draft cannot reach readers empty.
- */
 function chapterLessonsPanel(chapter: Chapter, lessons: Tutorial[]): string {
   const rows = lessons
     .map(
@@ -547,7 +541,6 @@ export function lessonEditorPage(
   subject: Subject,
   lesson?: Tutorial,
   chapters: Chapter[] = [],
-  /** Preselects the chapter when arriving from that chapter's editor. */
   chapterId?: string,
 ): string {
   const editing = Boolean(lesson);

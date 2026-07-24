@@ -88,11 +88,11 @@ function readChapter(dir: string): CourseChapter {
   };
 }
 
-export function loadCourse(dir: string): Course {
+export function loadCourse(dir: string): Course | null {
   const meta = join(dir, 'course.md');
 
   if (!existsSync(meta)) {
-    throw new Error(`Course is missing course.md: ${dir}`);
+    return null;
   }
 
   const { data, body } = parseFrontMatter(readFileSync(meta, 'utf8'));
@@ -113,7 +113,9 @@ export function loadCourse(dir: string): Course {
 export function loadCourses(root = coursesRoot()): Course[] {
   if (!existsSync(root)) return [];
 
-  return ordered(root, 'dirs').map((name) => loadCourse(join(root, name)));
+  return ordered(root, 'dirs')
+    .map((name) => loadCourse(join(root, name)))
+    .filter((course): course is Course => course !== null);
 }
 
 export function findCourse(slug: string, root = coursesRoot()): Course {

@@ -219,7 +219,6 @@ export class TutorialsService {
     );
   }
 
-  /** The chapter's lessons, drafts included, in the order readers see them. */
   chapterLessons(chapterId: string): Tutorial[] {
     const chapter = this.findChapterById(chapterId);
 
