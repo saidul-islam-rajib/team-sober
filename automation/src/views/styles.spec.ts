@@ -315,6 +315,50 @@ describe('home sidebar tag list', () => {
   });
 });
 
+describe('social share cards', () => {
+  const tutorialsHtml = (): string =>
+    tutorialsIndexPage(
+      [subject],
+      new Map([
+        [subject.id, { total: 1, minutes: 3, difficulties: ['beginner'] }],
+      ]),
+      new Map([[subject.id, [lesson.id]]]),
+      { subjects: 1, tutorials: 1, minutes: 3 },
+    );
+
+  const homeHtml = (over: Record<string, unknown> = {}): string =>
+    homePage({
+      posts: [],
+      tags: [],
+      stats: { published: 1, tags: 0, words: 0, readingMinutes: 0 },
+      ...over,
+    });
+
+  it('gives the tutorials page its generated course card', () => {
+    const html = tutorialsHtml();
+
+    expect(html).toContain(
+      '<meta property="og:image" content="https://team-sober.com/og/tutorials.png" />',
+    );
+    expect(html).toContain('<meta property="og:image:width" content="1200" />');
+    expect(html).toContain('<meta property="og:image:height" content="630" />');
+    expect(html).toContain(
+      '<meta name="twitter:card" content="summary_large_image" />',
+    );
+  });
+
+  it('gives the home feed its own card', () => {
+    expect(homeHtml()).toContain(
+      '<meta property="og:image" content="https://team-sober.com/og/home.png" />',
+    );
+  });
+
+  it('does not put the home card on tag or search views', () => {
+    expect(homeHtml({ activeTag: 'docker' })).not.toContain('/og/home.png');
+    expect(homeHtml({ query: 'redis' })).not.toContain('/og/home.png');
+  });
+});
+
 describe('script placement', () => {
   const pages: [string, () => string][] = [
     [

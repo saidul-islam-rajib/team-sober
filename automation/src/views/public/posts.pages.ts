@@ -499,12 +499,19 @@ ${FEED_CSS}
     </aside>
   </div>`;
 
+  // The home feed gets its own branded share card; tag and search views keep
+  // the default (avatar) preview.
+  const isHome = !activeTag && !query;
+
   return layout({
     title: activeTag
       ? `Posts tagged ${activeTag} — ${getSettings().authorName}`
       : `${getSettings().authorName} — ${getSettings().siteTitle}`,
     body: body + SEARCH_JS,
     path: activeTag ? `/tag/${activeTag}` : query ? '/search' : '/',
+    image: isHome ? '/og/home.png' : undefined,
+    imageWidth: isHome ? 1200 : undefined,
+    imageHeight: isHome ? 630 : undefined,
   });
 }
 

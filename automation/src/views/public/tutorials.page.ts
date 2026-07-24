@@ -101,6 +101,9 @@ export function tutorialsIndexPage(
       'Subject-by-subject tutorials on backend development, DevOps and cloud infrastructure.',
     body: body + PROGRESS_TRACKER_SCRIPT,
     path: '/tutorials',
+    image: '/og/tutorials.png',
+    imageWidth: 1200,
+    imageHeight: 630,
     head: HEAD,
   });
 }
