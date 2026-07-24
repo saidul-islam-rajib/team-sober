@@ -54,6 +54,24 @@ export const ContentPolicy = {
   },
 };
 
+function imageCacheSeconds(): number {
+  return Math.round((configNumber('media.imageCacheDays') * DAY) / 1000);
+}
+
+export const ImagePolicy = {
+  get cacheDays(): number {
+    return configNumber('media.imageCacheDays');
+  },
+
+  get cacheSeconds(): number {
+    return imageCacheSeconds();
+  },
+
+  get cacheControl(): string {
+    return `public, max-age=${imageCacheSeconds()}, immutable`;
+  },
+};
+
 export const SupportPolicy = {
   get channelUrl(): string {
     return configText('support.channelUrl');

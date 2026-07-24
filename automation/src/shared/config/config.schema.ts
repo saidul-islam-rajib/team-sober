@@ -165,6 +165,24 @@ export const CONFIG_GROUPS: ConfigGroup[] = [
     ],
   },
   {
+    id: 'media',
+    title: 'Images & caching',
+    description:
+      'How long browsers keep uploaded images before checking for a new copy. Uploads get a unique filename, so a long duration is safe — a changed image is a new file with a new URL.',
+    fields: [
+      {
+        key: 'media.imageCacheDays',
+        kind: 'number',
+        label: 'Image cache retention',
+        hint: 'How long a browser reuses a downloaded image without re-requesting it. Longer means faster repeat visits and less bandwidth.',
+        default: 7,
+        min: 1,
+        max: 365,
+        unit: 'days',
+      },
+    ],
+  },
+  {
     id: 'support',
     title: 'Support & contact',
     description:

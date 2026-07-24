@@ -1,11 +1,8 @@
-import { mkdtempSync, rmSync } from 'fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { TutorialsService } from '../tutorials.service';
-import {
-  loadCourses,
-  parseFrontMatter,
-} from './course.loader';
+import { findCourse, loadCourses, parseFrontMatter } from './course.loader';
 import { Course } from './course.model';
 
 describe('front matter', () => {
@@ -44,11 +41,83 @@ describe('front matter', () => {
   });
 });
 
-describe('course loader', () => {
+describe('course loader tolerance', () => {
+  let root: string;
+
+  const course = (slug: string): string => {
+    const dir = join(root, slug);
+    mkdirSync(dir, { recursive: true });
+    return dir;
+  };
+
+  const write = (dir: string, name: string, text: string): void => {
+    writeFileSync(join(dir, name), text, 'utf8');
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'courses-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it('returns nothing rather than throwing when the directory is absent', () => {
     expect(loadCourses(join(tmpdir(), 'courses-that-do-not-exist'))).toEqual(
       [],
     );
+  });
+
+  it('returns nothing for an empty courses directory', () => {
+    expect(loadCourses(root)).toEqual([]);
+  });
+
+  it('skips a course folder with no course.md', () => {
+    course('half-made');
+    expect(loadCourses(root)).toEqual([]);
+  });
+
+  it('skips a course whose front matter has no title', () => {
+    const dir = course('untitled');
+    write(dir, 'course.md', '---\nslug: untitled\n---\n');
+
+    expect(loadCourses(root)).toEqual([]);
+  });
+
+  it('loads a valid course while skipping its malformed parts', () => {
+    const dir = course('demo');
+    write(
+      dir,
+      'course.md',
+      '---\ntitle: Demo\nslug: demo\nicon: 🧪\n---\nA demo course.',
+    );
+
+    const good = join(dir, '01-good');
+    mkdirSync(good);
+    write(good, '_chapter.md', '---\ntitle: Good chapter\n---\n');
+    write(good, '01-lesson.md', '---\ntitle: A lesson\n---\n\nReal content.');
+    write(good, '02-empty.md', '---\ntitle: Empty\n---\n'); // no body → skipped
+    write(good, '03-untitled.md', 'no front matter at all'); // no title → skipped
+
+    const orphan = join(dir, '02-orphan');
+    mkdirSync(orphan);
+    write(orphan, '01-lesson.md', '---\ntitle: Orphaned\n---\n\nContent.');
+
+    const [loaded] = loadCourses(root);
+
+    expect(loaded.title).toBe('Demo');
+    expect(loaded.chapters).toHaveLength(1);
+    expect(loaded.chapters[0].title).toBe('Good chapter');
+    expect(loaded.chapters[0].lessons).toHaveLength(1);
+    expect(loaded.chapters[0].lessons[0].title).toBe('A lesson');
+  });
+
+  it('finds a course by slug and returns null for an unknown one', () => {
+    const dir = course('demo');
+    write(dir, 'course.md', '---\ntitle: Demo\nslug: demo\n---\nx');
+
+    expect(findCourse('demo', root)?.title).toBe('Demo');
+    expect(findCourse('nope', root)).toBeNull();
   });
 });
 
