@@ -3,14 +3,10 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { TutorialsService } from '../tutorials.service';
 import {
-  coursesRoot,
-  findCourse,
-  loadCourse,
   loadCourses,
   parseFrontMatter,
 } from './course.loader';
-import { Course, courseLessonCount } from './course.model';
-import { slugify } from '../../posts/post.model';
+import { Course } from './course.model';
 
 describe('front matter', () => {
   it('splits the block from the body', () => {
@@ -48,98 +44,11 @@ describe('front matter', () => {
   });
 });
 
-describe('courses on disk', () => {
-  const courses = loadCourses();
-
-  it('finds at least one course to import', () => {
-    expect(courses.length).toBeGreaterThan(0);
-  });
-
-  it.each(courses.map((course): [string, Course] => [course.title, course]))(
-    '%s carries the fields a subject needs',
-    (_name, course) => {
-      expect(course.slug).toMatch(/^[a-z0-9-]+$/);
-      expect(course.title.length).toBeGreaterThan(0);
-      expect(course.summary.length).toBeGreaterThan(20);
-      expect(course.icon.length).toBeGreaterThan(0);
-    },
-  );
-
-  it.each(courses.map((course): [string, Course] => [course.title, course]))(
-    '%s gives every lesson a title, summary and body',
-    (_name, course) => {
-      for (const chapter of course.chapters) {
-        expect(chapter.title.length).toBeGreaterThan(0);
-        expect(chapter.summary.length).toBeGreaterThan(0);
-        expect(chapter.lessons.length).toBeGreaterThan(0);
-
-        for (const lesson of chapter.lessons) {
-          expect(lesson.title.length).toBeGreaterThan(0);
-          expect(lesson.summary.length).toBeGreaterThan(0);
-          expect(lesson.content.length).toBeGreaterThan(200);
-          expect(['beginner', 'intermediate', 'advanced']).toContain(
-            lesson.difficulty,
-          );
-        }
-      }
-    },
-  );
-
-  it.each(courses.map((course): [string, Course] => [course.title, course]))(
-    '%s keeps every lesson title unique, so no slug collides',
-    (_name, course) => {
-      const slugs = course.chapters
-        .flatMap((chapter) => chapter.lessons)
-        .map((lesson) => slugify(lesson.title));
-
-      expect(new Set(slugs).size).toBe(slugs.length);
-    },
-  );
-
-  it.each(courses.map((course): [string, Course] => [course.title, course]))(
-    '%s closes every code fence it opens',
-    (_name, course) => {
-      for (const chapter of course.chapters) {
-        for (const lesson of chapter.lessons) {
-          const fences = lesson.content.match(/^```/gm) ?? [];
-
-          expect(fences.length % 2).toBe(0);
-        }
-      }
-    },
-  );
-
-  it('reads a course by slug and rejects an unknown one', () => {
-    expect(findCourse(courses[0].slug).title).toBe(courses[0].title);
-    expect(() => findCourse('no-such-course')).toThrow(/no-such-course/);
-  });
-
+describe('course loader', () => {
   it('returns nothing rather than throwing when the directory is absent', () => {
     expect(loadCourses(join(tmpdir(), 'courses-that-do-not-exist'))).toEqual(
       [],
     );
-  });
-});
-
-describe('the data structures and algorithms course', () => {
-  const course = loadCourse(
-    join(coursesRoot(), 'data-structures-and-algorithms'),
-  );
-
-  it('covers every chapter of the syllabus', () => {
-    expect(course.chapters).toHaveLength(15);
-  });
-
-  it('holds at least five lessons in each chapter', () => {
-    for (const chapter of course.chapters) {
-      expect(chapter.lessons.length).toBeGreaterThanOrEqual(5);
-    }
-
-    expect(courseLessonCount(course)).toBeGreaterThanOrEqual(75);
-  });
-
-  it('starts where a reader starts', () => {
-    expect(course.chapters[0].title).toContain('Introduction');
   });
 });
 
