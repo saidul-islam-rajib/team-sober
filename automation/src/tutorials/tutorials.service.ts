@@ -10,6 +10,7 @@ import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { normaliseTags, slugify } from '../posts/post.model';
 import {
+  DIFFICULTIES,
   Difficulty,
   Neighbours,
   Subject,
@@ -406,19 +407,30 @@ export class TutorialsService {
       .filter((group) => group.tags.length > 0);
   }
 
-  totals(): { subjects: number; tutorials: number; minutes: number } {
+  totals(): {
+    subjects: number;
+    tutorials: number;
+    minutes: number;
+    chapters: number;
+    difficulties: Difficulty[];
+  } {
     const subjects = publishedOnly(this.subjects);
+    const perSubject = subjects.map((subject) => this.stats(subject.id));
+
+    const seen = new Set<Difficulty>();
+    for (const stat of perSubject) {
+      for (const level of stat.difficulties) seen.add(level);
+    }
 
     return {
       subjects: subjects.length,
-      tutorials: subjects.reduce(
-        (sum, subject) => sum + this.stats(subject.id).total,
+      tutorials: perSubject.reduce((sum, stat) => sum + stat.total, 0),
+      minutes: perSubject.reduce((sum, stat) => sum + stat.minutes, 0),
+      chapters: subjects.reduce(
+        (sum, subject) => sum + chaptersOf(this.chapters, subject.id).length,
         0,
       ),
-      minutes: subjects.reduce(
-        (sum, subject) => sum + this.stats(subject.id).minutes,
-        0,
-      ),
+      difficulties: DIFFICULTIES.filter((level) => seen.has(level)),
     };
   }
 

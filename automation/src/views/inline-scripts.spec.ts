@@ -298,6 +298,28 @@ describe('inline scripts', () => {
   });
 });
 
+describe('post detail width and justification', () => {
+  it('uses the standard shell, not the narrow article measure', () => {
+    const html = postPage(post, [], '<p>x</p>');
+
+    expect(html).toContain('<main class="shell default">');
+    expect(html).not.toContain('<main class="shell article">');
+  });
+
+  it('keeps a left-aligned reading column inside that shell', () => {
+    const html = postPage(post, [], '<p>x</p>');
+
+    expect(html).toContain('.post-shell { max-width: 760px; }');
+    expect(html).toContain('<div class="post-shell">');
+  });
+
+  it('justifies the rendered prose paragraphs', () => {
+    const html = postPage(post, [], '<p>x</p>');
+
+    expect(html).toMatch(/\.prose p, \.prose li \{[^}]*text-align: justify/);
+  });
+});
+
 describe('explore page — tutorial tags', () => {
   const render = (): string =>
     tagsPage({

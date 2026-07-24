@@ -697,4 +697,56 @@ describe('TutorialsService', () => {
       expect(service.tagsBySubject()).toEqual([]);
     });
   });
+
+  describe('totals', () => {
+    it('counts chapters and the difficulty range across subjects', () => {
+      const subject = makeSubject();
+      const chapter = service.createChapter({
+        subjectId: subject.id,
+        title: 'Basics',
+      });
+
+      service.createTutorial({
+        subjectId: subject.id,
+        chapterId: chapter.id,
+        title: 'Easy',
+        content: 'x',
+        difficulty: 'beginner',
+      });
+      service.createTutorial({
+        subjectId: subject.id,
+        title: 'Hard',
+        content: 'x',
+        difficulty: 'advanced',
+      });
+
+      const totals = service.totals();
+
+      expect(totals.subjects).toBe(1);
+      expect(totals.tutorials).toBe(2);
+      expect(totals.chapters).toBe(1);
+      expect(totals.difficulties).toEqual(['beginner', 'advanced']);
+    });
+
+    it('reports the levels in low-to-high order regardless of input order', () => {
+      const subject = makeSubject();
+      service.createTutorial({
+        subjectId: subject.id,
+        title: 'A',
+        content: 'x',
+        difficulty: 'advanced',
+      });
+      service.createTutorial({
+        subjectId: subject.id,
+        title: 'B',
+        content: 'x',
+        difficulty: 'intermediate',
+      });
+
+      expect(service.totals().difficulties).toEqual([
+        'intermediate',
+        'advanced',
+      ]);
+    });
+  });
 });

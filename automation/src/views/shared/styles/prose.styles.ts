@@ -1,6 +1,11 @@
 export const PROSE_STYLES = `
   .prose { font-family: var(--serif); font-size: 1.13rem; line-height: 1.75; color: var(--ink-2); }
   .prose > * + * { margin-top: 1.4rem; }
+  .prose p, .prose li {
+    text-align: justify;
+    hyphens: auto; -webkit-hyphens: auto;
+    text-wrap: pretty;
+  }
   .prose h2 { font-size: 1.5rem; margin-top: 2.4rem; }
   .prose h3 { font-size: 1.22rem; margin-top: 2rem; }
   .prose ul, .prose ol { padding-left: 1.4rem; }

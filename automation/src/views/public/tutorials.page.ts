@@ -33,6 +33,18 @@ function levelBadge(level: string): string {
   );
 }
 
+function levelSpan(levels: string[]): string {
+  if (levels.length === 0) return '';
+
+  const label = (level: string): string =>
+    DIFFICULTY_LABELS[level as keyof typeof DIFFICULTY_LABELS] ?? level;
+
+  const lowest = label(levels[0]);
+  const highest = label(levels[levels.length - 1]);
+
+  return lowest === highest ? lowest : `${lowest}–${highest}`;
+}
+
 function levelRange(levels: string[]): string {
   if (levels.length === 0) return '';
   if (levels.length === 1) return levelBadge(levels[0]);
@@ -48,7 +60,13 @@ export function tutorialsIndexPage(
   subjects: Subject[],
   stats: Map<string, SubjectStats>,
   lessonIds: Map<string, string[]>,
-  totals: { subjects: number; tutorials: number; minutes: number },
+  totals: {
+    subjects: number;
+    tutorials: number;
+    minutes: number;
+    chapters?: number;
+    difficulties?: string[];
+  },
   progress: ProgressState = NO_PROGRESS_STATE,
 ): string {
   const cards = subjects
@@ -80,9 +98,19 @@ export function tutorialsIndexPage(
       <h1>Tutorials</h1>
       <p>Subject-by-subject walkthroughs, written in order. Pick a subject and work down it, or jump to whatever you need.</p>
       <div class="tut-totals">
-        <div class="tut-total"><b>${totals.subjects}</b><span>Subjects</span></div>
-        <div class="tut-total"><b>${totals.tutorials}</b><span>Lessons</span></div>
-        <div class="tut-total"><b>${esc(formatDuration(totals.minutes))}</b><span>Reading time</span></div>
+        <div class="tut-total"><b>${totals.subjects}</b><span>${pluralise(totals.subjects, 'Subject')}</span></div>
+        <div class="tut-total"><b>${totals.tutorials}</b><span>${pluralise(totals.tutorials, 'Lesson')}</span></div>
+        ${
+          totals.chapters
+            ? `<div class="tut-total"><b>${totals.chapters}</b><span>${pluralise(totals.chapters, 'Chapter')}</span></div>`
+            : ''
+        }
+        ${
+          totals.difficulties && totals.difficulties.length
+            ? `<div class="tut-total"><b class="range">${esc(levelSpan(totals.difficulties))}</b><span>Levels</span></div>`
+            : ''
+        }
+        <div class="tut-total"><b>✓</b><span>Certificate on completion</span></div>
       </div>
     </section>
 

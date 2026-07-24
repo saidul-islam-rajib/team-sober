@@ -528,6 +528,7 @@ export function postPage(
 
   const body = `
 <style>
+  .post-shell { max-width: 760px; }
   .article-head { margin-bottom: 2.25rem; }
   .article-head h1 {
     font-family: var(--serif); font-size: clamp(1.9rem, 5vw, 2.6rem);
@@ -569,6 +570,7 @@ ${PROSE_BUNDLE}
   .related span { font-size: 0.8rem; color: var(--ink-3); }
 </style>
 
+  <div class="post-shell">
   <a href="/" style="font-size:.86rem;color:var(--ink-3)">← All posts</a>
 
   <article>
@@ -622,13 +624,14 @@ ${PROSE_BUNDLE}
         .join('')}
     </section>`
       : ''
-  }`;
+  }
+  </div>`;
 
   return layout({
     title: `${post.title} — ${getSettings().authorName}`,
     description: post.subtitle || excerpt(post.content, 150),
     body: body + LIGHTBOX_SCRIPT + IMAGE_SKELETON,
-    variant: 'article',
+    variant: 'default',
     path: `/post/${post.slug}`,
     image: firstImage(post.content),
     ogType: 'article',

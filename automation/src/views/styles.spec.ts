@@ -315,6 +315,58 @@ describe('home sidebar tag list', () => {
   });
 });
 
+describe('tutorials index totals', () => {
+  const render = (
+    over: Partial<{
+      chapters: number;
+      difficulties: string[];
+    }> = {},
+  ): string =>
+    tutorialsIndexPage(
+      [subject],
+      new Map([
+        [subject.id, { total: 8, minutes: 40, difficulties: ['beginner'] }],
+      ]),
+      new Map([[subject.id, [lesson.id]]]),
+      { subjects: 2, tutorials: 8, minutes: 40, ...over },
+    );
+
+  it('no longer shows total reading minutes', () => {
+    expect(render()).not.toContain('Reading time');
+  });
+
+  it('shows subjects and lessons', () => {
+    const html = render();
+
+    expect(html).toContain('<span>Subjects</span>');
+    expect(html).toContain('<span>Lessons</span>');
+  });
+
+  it('shows a chapter count when there are chapters', () => {
+    expect(render({ chapters: 5 })).toContain('<span>Chapters</span>');
+  });
+
+  it('shows the difficulty span when levels are known', () => {
+    const html = render({ difficulties: ['beginner', 'advanced'] });
+
+    expect(html).toContain('Beginner–Advanced');
+    expect(html).toContain('<span>Levels</span>');
+  });
+
+  it('advertises the completion certificate', () => {
+    expect(render()).toContain('Certificate on completion');
+  });
+});
+
+describe('justified tutorial descriptions', () => {
+  it('justifies the subject and lesson descriptions', () => {
+    expect(TUTORIALS_STYLES).toContain('.subj-card p');
+    expect(TUTORIALS_STYLES).toMatch(
+      /\.subj-card p[^{]*\{[^}]*text-align: justify/,
+    );
+  });
+});
+
 describe('social share cards', () => {
   const tutorialsHtml = (): string =>
     tutorialsIndexPage(
