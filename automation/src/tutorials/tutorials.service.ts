@@ -372,6 +372,40 @@ export class TutorialsService {
     });
   }
 
+  tagCounts(): { tag: string; count: number }[] {
+    return sortedCounts(countTags(this.allTutorials()));
+  }
+
+  byTag(tag: string): { tutorial: Tutorial; subject: Subject }[] {
+    const wanted = tag.trim().toLowerCase();
+    const bySubject = new Map(
+      this.findSubjects().map((subject) => [subject.id, subject]),
+    );
+
+    return this.allTutorials()
+      .filter((tutorial) => tutorial.tags.includes(wanted))
+      .flatMap((tutorial) => {
+        const subject = bySubject.get(tutorial.subjectId);
+        return subject ? [{ tutorial, subject }] : [];
+      });
+  }
+
+  tagsBySubject(): {
+    subject: Subject;
+    tags: { tag: string; count: number }[];
+  }[] {
+    const lessons = this.allTutorials();
+
+    return this.findSubjects()
+      .map((subject) => ({
+        subject,
+        tags: sortedCounts(
+          countTags(lessons.filter((t) => t.subjectId === subject.id)),
+        ),
+      }))
+      .filter((group) => group.tags.length > 0);
+  }
+
   totals(): { subjects: number; tutorials: number; minutes: number } {
     const subjects = publishedOnly(this.subjects);
 
@@ -681,6 +715,26 @@ export class TutorialsService {
     tutorial.views += 1;
     this.persist();
   }
+}
+
+function countTags(lessons: Tutorial[]): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  for (const lesson of lessons) {
+    for (const tag of lesson.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+
+  return counts;
+}
+
+function sortedCounts(
+  counts: Map<string, number>,
+): { tag: string; count: number }[] {
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 }
 
 function seedTutorials(): TutorialStore {
