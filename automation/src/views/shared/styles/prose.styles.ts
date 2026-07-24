@@ -1,4 +1,3 @@
-
 export const PROSE_STYLES = `
   .prose { font-family: var(--serif); font-size: 1.13rem; line-height: 1.75; color: var(--ink-2); }
   .prose > * + * { margin-top: 1.4rem; }

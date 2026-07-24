@@ -20,7 +20,7 @@ renderer.image = (href: string | null, title: string | null, text: string) =>
     .filter(Boolean)
     .join(' ');
 
-marked.setOptions({ gfm: true, breaks: false, renderer });
+marked.setOptions({ gfm: true, breaks: true, renderer });
 
 const COLUMN_BLOCK = /^:::columns[ \t]*\n([\s\S]*?)^:::[ \t]*$/gm;
 

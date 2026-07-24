@@ -7,7 +7,12 @@ const LAYOUT_STYLES = `
     font-family: var(--serif); font-size: clamp(2rem, 5vw, 2.9rem);
     line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 0.7rem;
   }
-  .tut-hero p { color: var(--ink-3); max-width: 36em; font-size: 1.04rem; }
+
+  .tut-hero p {
+    color: var(--ink-3); font-size: 1.04rem;
+    text-align: justify; hyphens: auto; -webkit-hyphens: auto;
+    text-wrap: pretty;
+  }
   .tut-totals {
     display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1.25rem;
     padding-top: 1.25rem; border-top: 1px solid var(--border);

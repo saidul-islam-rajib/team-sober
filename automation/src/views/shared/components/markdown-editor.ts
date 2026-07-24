@@ -72,6 +72,7 @@ const HELP = `
   <details class="md-help">
     <summary>Markdown reference</summary>
     <table class="md-table">
+      <tr><td>Enter · blank line</td><td>A new line, and a new paragraph — text comes out as you type it</td></tr>
       <tr><td><code># H1</code> · <code>## H2</code> · <code>### H3</code></td><td>Headings — these control text size</td></tr>
       <tr><td><code>**bold**</code> · <code>*italic*</code></td><td>Emphasis</td></tr>
       <tr><td><code>==highlight==</code></td><td>Highlighted text</td></tr>
