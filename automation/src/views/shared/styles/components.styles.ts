@@ -53,6 +53,20 @@ export const EMPTY_STATE_STYLES = `
   }
 `;
 
+export const FIELD_HEAD_STYLES = `
+  .field-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 0.5rem; margin-bottom: 0.4rem;
+  }
+  .field-head label { margin: 0; }
+  .word-count {
+    font-size: 0.74rem; color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .word-count.near { color: var(--warn); }
+  .word-count.over { color: var(--danger); font-weight: 700; }
+`;
+
 export const COMPONENT_STYLES = [
   BADGE_STYLES,
   PROGRESS_STYLES,

@@ -7,6 +7,9 @@ import {
   ACCOUNT_PUBLIC_CSS,
 } from '../accounts/account.assets';
 import { UI_COMPONENTS_CSS } from '../shared/view/ui.assets';
+import { PROSE_BUNDLE } from './shared/styles/prose.styles';
+import { MARKDOWN_EDITOR_STYLES } from './shared/components/markdown-editor';
+import { DATETIME_FIELD_STYLES } from './shared/components/datetime-field';
 import {
   subjectPage,
   tutorialPage,
@@ -107,6 +110,9 @@ const bundles: [string, string][] = [
   ['ui components', UI_COMPONENTS_CSS],
   ['public accounts', ACCOUNT_PUBLIC_CSS],
   ['admin accounts', ACCOUNT_ADMIN_CSS],
+  ['rendered markdown', PROSE_BUNDLE],
+  ['markdown editor', MARKDOWN_EDITOR_STYLES],
+  ['date and time field', DATETIME_FIELD_STYLES],
 ];
 
 const allCss: [string, string][] = [...sheets, ...bundles];

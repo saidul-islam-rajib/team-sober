@@ -1,4 +1,5 @@
 import { COMPONENT_STYLES } from '../shared/styles/components.styles';
+import { PROSE_BUNDLE } from '../shared/styles/prose.styles';
 
 const LAYOUT_STYLES = `
   .tut-hero { padding: 2rem 0 1.5rem; }
@@ -237,4 +238,5 @@ ${SUBJECT_STYLES}
 ${ENROL_STYLES}
 ${LESSON_LIST_STYLES}
 ${LESSON_PAGE_STYLES}
+${PROSE_BUNDLE}
 </style>`;

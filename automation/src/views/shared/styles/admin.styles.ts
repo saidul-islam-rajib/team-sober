@@ -23,6 +23,14 @@ export const ADMIN_PANEL_STYLES = `
   .hint { font-size: 0.76rem; color: var(--ink-3); margin-top: 0.3rem; }
   .form-grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
   @media (max-width: 860px) { .form-grid { grid-template-columns: 1fr; } }
+
+  /* A number with its unit beside it, and a plain-language readout under both. */
+  .input-unit { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .input-unit input { flex: 1; min-width: 5rem; }
+  .input-unit .unit { font-size: 0.82rem; color: var(--ink-3); }
+  .input-unit .unit-readout {
+    flex-basis: 100%; font-size: 0.76rem; color: var(--ink-3);
+  }
 `;
 
 export const ADMIN_ROW_STYLES = `

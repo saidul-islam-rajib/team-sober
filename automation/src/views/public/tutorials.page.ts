@@ -8,7 +8,7 @@ import {
   formatDuration,
 } from '../../tutorials/tutorial.model';
 import { readingMinutes } from '../../posts/post.model';
-import { esc, layout } from '../shared/layout';
+import { IMAGE_SKELETON, esc, layout } from '../shared/layout';
 import {
   NO_PROGRESS_STATE,
   ProgressState,
@@ -21,6 +21,7 @@ import {
   progressState,
 } from '../shared/components';
 import { PROGRESS_TRACKER_SCRIPT } from '../shared/scripts/progress-tracker';
+import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
 import { TUTORIALS_STYLES } from './tutorials.styles';
 
 const HEAD = TUTORIALS_STYLES;
@@ -311,7 +312,7 @@ export function tutorialPage(
   return layout({
     title: tutorial.title,
     description: tutorial.summary || `${subject.title} tutorial.`,
-    body: body + PROGRESS_TRACKER_SCRIPT,
+    body: body + PROGRESS_TRACKER_SCRIPT + LIGHTBOX_SCRIPT + IMAGE_SKELETON,
     path: `/tutorials/${subject.slug}/${tutorial.slug}`,
     ogType: 'article',
     publishedAt: tutorial.createdAt,
