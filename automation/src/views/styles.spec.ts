@@ -346,11 +346,11 @@ describe('tutorials index totals', () => {
     expect(render({ chapters: 5 })).toContain('<span>Chapters</span>');
   });
 
-  it('shows the difficulty span when levels are known', () => {
+  it('shows the difficulty span as a captioned icon tile', () => {
     const html = render({ difficulties: ['beginner', 'advanced'] });
 
-    expect(html).toContain('Beginner–Advanced');
-    expect(html).toContain('<span>Levels</span>');
+    expect(html).toContain('<span>Beginner–Advanced</span>');
+    expect(html).toMatch(/<b class="ico"><svg[\s\S]*?<\/svg><\/b>/);
   });
 
   it('advertises the completion certificate', () => {

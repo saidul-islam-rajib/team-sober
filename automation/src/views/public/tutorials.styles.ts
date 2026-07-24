@@ -18,7 +18,8 @@ const LAYOUT_STYLES = `
     padding-top: 1.25rem; border-top: 1px solid var(--border);
   }
   .tut-total b { display: block; font-size: 1.5rem; font-family: var(--serif); line-height: 1.15; }
-  .tut-total b.range { font-size: 1.05rem; }
+  .tut-total b.ico { height: 1.85rem; display: flex; align-items: center; }
+  .tut-total b.ico svg { width: 1.55rem; height: 1.55rem; }
   .tut-total span { font-size: 0.8rem; color: var(--ink-3); }
   .subj-card p, .subj-head p, .enrol-card p, .lesson-body p, .tut-article .lede {
     text-align: justify;

@@ -26,6 +26,12 @@ import { TUTORIALS_STYLES } from './tutorials.styles';
 
 const HEAD = TUTORIALS_STYLES;
 
+const LEVEL_ICON = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+  <rect x="3" y="14" width="4" height="7" rx="1" opacity="0.5"/>
+  <rect x="10" y="9" width="4" height="12" rx="1" opacity="0.75"/>
+  <rect x="17" y="4" width="4" height="17" rx="1"/>
+</svg>`;
+
 function levelBadge(level: string): string {
   return badge(
     DIFFICULTY_LABELS[level as keyof typeof DIFFICULTY_LABELS] ?? level,
@@ -107,7 +113,7 @@ export function tutorialsIndexPage(
         }
         ${
           totals.difficulties && totals.difficulties.length
-            ? `<div class="tut-total"><b class="range">${esc(levelSpan(totals.difficulties))}</b><span>Levels</span></div>`
+            ? `<div class="tut-total"><b class="ico">${LEVEL_ICON}</b><span>${esc(levelSpan(totals.difficulties))}</span></div>`
             : ''
         }
         <div class="tut-total"><b>✓</b><span>Certificate on completion</span></div>
