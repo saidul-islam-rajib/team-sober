@@ -644,19 +644,28 @@ ${PROSE_BUNDLE}
 export function tagsPage(opts: {
   tags: { tag: string; count: number }[];
   featured: { tag: string; count: number; posts: Post[] }[];
+  subjectTags?: {
+    title: string;
+    slug: string;
+    icon: string;
+    tags: { tag: string; count: number }[];
+  }[];
   technologies: { term: string; slug: string; count: number }[];
   topics: { term: string; slug: string; count: number }[];
   keywords: { term: string; slug: string; count: number }[];
   postCount: number;
+  lessonCount?: number;
   projectCount: number;
 }): string {
   const {
     tags,
     featured,
+    subjectTags = [],
     technologies,
     topics,
     keywords,
     postCount,
+    lessonCount = 0,
     projectCount,
   } = opts;
 
@@ -726,6 +735,21 @@ export function tagsPage(opts: {
   .featured-card li { padding: 0.3rem 0; border-top: 1px solid var(--border); }
   .featured-card li a { font-size: 0.87rem; color: var(--ink-2); line-height: 1.45; }
   .featured-card li a:hover { color: var(--accent); }
+  .subject-tags { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .subject-tags .subj-tag-card {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.1rem 1.15rem; background: var(--surface);
+  }
+  .subject-tags .head {
+    display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.85rem;
+  }
+  .subject-tags .head .ico { font-size: 1.25rem; line-height: 1; }
+  .subject-tags .head a {
+    font-family: var(--serif); font-size: 1.08rem; color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .subject-tags .head a:hover { color: var(--accent); }
+  .subject-tags .head .n { margin-left: auto; font-size: 0.75rem; color: var(--ink-3); white-space: nowrap; }
 
   @media (max-width: 600px) {
     .explore-hero { padding: 1.5rem 0 1.25rem; }
@@ -742,7 +766,11 @@ export function tagsPage(opts: {
     <h1>Explore</h1>
     <p>
       ${tags.length} tag${tags.length === 1 ? '' : 's'} across ${postCount}
-      post${postCount === 1 ? '' : 's'}, plus the technologies and topics behind
+      post${postCount === 1 ? '' : 's'}${
+        lessonCount
+          ? ` and ${lessonCount} lesson${lessonCount === 1 ? '' : 's'}`
+          : ''
+      }, plus the technologies and topics behind
       ${projectCount} project${projectCount === 1 ? '' : 's'}. Everything here is a link.
     </p>
   </section>
@@ -790,6 +818,37 @@ export function tagsPage(opts: {
         </ul>
       </div>`,
         )
+        .join('')}
+    </div>
+  </section>`
+      : ''
+  }
+
+  ${
+    subjectTags.length
+      ? `<section class="explore-section">
+    <div class="section-label">Tutorial tags by subject</div>
+    <p class="section-blurb">Which tags each course's lessons carry. Follow a subject, or a tag.</p>
+    <div class="subject-tags">
+      ${subjectTags
+        .map((s) => {
+          const total = s.tags.reduce((sum, t) => sum + t.count, 0);
+          return `<div class="subj-tag-card">
+        <div class="head">
+          <span class="ico" aria-hidden="true">${s.icon ? esc(s.icon) : '📘'}</span>
+          <a href="/tutorials/${esc(s.slug)}">${esc(s.title)}</a>
+          <span class="n">${total} tagged lesson${total === 1 ? '' : 's'}</span>
+        </div>
+        <div class="tag-row">
+          ${s.tags
+            .map(
+              (t) =>
+                `<a class="tag" href="/tag/${esc(t.tag)}">${esc(t.tag)} <span style="opacity:.55">${t.count}</span></a>`,
+            )
+            .join('')}
+        </div>
+      </div>`;
+        })
         .join('')}
     </div>
   </section>`

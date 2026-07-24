@@ -620,4 +620,81 @@ describe('TutorialsService', () => {
 
     rmSync(fresh, { recursive: true, force: true });
   });
+
+  describe('tags', () => {
+    const tagged = (
+      subjectId: string,
+      title: string,
+      tags: string,
+      status: 'published' | 'draft' = 'published',
+    ) =>
+      service.createTutorial({
+        subjectId,
+        title,
+        content: 'Body.',
+        tags,
+        status,
+      });
+
+    it('counts tags across published lessons, most used first', () => {
+      const subject = makeSubject();
+      tagged(subject.id, 'One', 'dns, networking');
+      tagged(subject.id, 'Two', 'networking');
+
+      expect(service.tagCounts()).toEqual([
+        { tag: 'networking', count: 2 },
+        { tag: 'dns', count: 1 },
+      ]);
+    });
+
+    it('ignores tags on draft lessons and hidden subjects', () => {
+      const subject = makeSubject();
+      tagged(subject.id, 'Live', 'shown');
+      tagged(subject.id, 'Hidden', 'secret', 'draft');
+
+      expect(service.tagCounts().map((t) => t.tag)).toEqual(['shown']);
+    });
+
+    it('lists lessons carrying a tag with their subject', () => {
+      const subject = makeSubject('Networking');
+      tagged(subject.id, 'DNS basics', 'dns');
+      tagged(subject.id, 'Untagged here', 'other');
+
+      const hits = service.byTag('dns');
+
+      expect(hits).toHaveLength(1);
+      expect(hits[0].tutorial.title).toBe('DNS basics');
+      expect(hits[0].subject.title).toBe('Networking');
+    });
+
+    it('matches a tag case-insensitively', () => {
+      const subject = makeSubject();
+      tagged(subject.id, 'One', 'Docker');
+
+      expect(service.byTag('DOCKER')).toHaveLength(1);
+    });
+
+    it('groups tags by the subject whose lessons use them', () => {
+      const net = makeSubject('Networking');
+      const db = makeSubject('Databases');
+      tagged(net.id, 'IP', 'networking, ip');
+      tagged(db.id, 'Indexes', 'sql');
+
+      const groups = service.tagsBySubject();
+      const byTitle = new Map(groups.map((g) => [g.subject.title, g.tags]));
+
+      expect(byTitle.get('Networking')?.map((t) => t.tag)).toEqual([
+        'ip',
+        'networking',
+      ]);
+      expect(byTitle.get('Databases')?.map((t) => t.tag)).toEqual(['sql']);
+    });
+
+    it('omits a subject that has no tagged lessons', () => {
+      const subject = makeSubject('Empty');
+      makeLesson(subject.id, 'No tags here');
+
+      expect(service.tagsBySubject()).toEqual([]);
+    });
+  });
 });

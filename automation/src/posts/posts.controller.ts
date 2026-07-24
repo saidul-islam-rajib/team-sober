@@ -62,9 +62,10 @@ export class PostsController {
   @Get('tags')
   @Header('Content-Type', 'text/html')
   tags(): string {
-    const tags = this.posts.tagCounts();
+    const postTags = this.posts.tagCounts();
+    const tags = mergeCounts(postTags, this.tutorials.tagCounts());
 
-    const featured = tags
+    const featured = postTags
       .filter((t) => t.count > 1)
       .slice(0, 6)
       .map((t) => ({
@@ -75,10 +76,17 @@ export class PostsController {
     return tagsPage({
       tags,
       featured,
+      subjectTags: this.tutorials.tagsBySubject().map((group) => ({
+        title: group.subject.title,
+        slug: group.subject.slug,
+        icon: group.subject.icon,
+        tags: group.tags,
+      })),
       technologies: this.projects.terms('tech'),
       topics: this.projects.terms('topics'),
       keywords: this.projects.terms('keywords'),
       postCount: this.posts.findPublished().length,
+      lessonCount: this.tutorials.allTutorials().length,
       projectCount: this.projects.findAll().length,
     });
   }
@@ -88,9 +96,14 @@ export class PostsController {
   byTag(@Param('tag') tag: string): string {
     return homePage({
       posts: this.posts.byTag(tag),
-      tags: this.posts.tagCounts(),
+      tags: mergeCounts(this.posts.tagCounts(), this.tutorials.tagCounts()),
       stats: this.feedStats(),
       activeTag: tag,
+      tutorials: this.tutorials.byTag(tag).map(({ tutorial, subject }) => ({
+        title: tutorial.title,
+        url: `/tutorials/${subject.slug}/${tutorial.slug}`,
+        meta: `${subject.title} · ${readingMinutes(tutorial.content)} min read`,
+      })),
     });
   }
 
@@ -178,4 +191,20 @@ export class PostsController {
       posts: this.posts.findPublished().length,
     };
   }
+}
+
+function mergeCounts(
+  ...lists: { tag: string; count: number }[][]
+): { tag: string; count: number }[] {
+  const totals = new Map<string, number>();
+
+  for (const list of lists) {
+    for (const { tag, count } of list) {
+      totals.set(tag, (totals.get(tag) ?? 0) + count);
+    }
+  }
+
+  return [...totals.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 }

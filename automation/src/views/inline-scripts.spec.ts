@@ -298,6 +298,64 @@ describe('inline scripts', () => {
   });
 });
 
+describe('explore page — tutorial tags', () => {
+  const render = (): string =>
+    tagsPage({
+      tags: [
+        { tag: 'networking', count: 3 },
+        { tag: 'docker', count: 1 },
+      ],
+      featured: [],
+      subjectTags: [
+        {
+          title: 'Networking',
+          slug: 'networking',
+          icon: '🌐',
+          tags: [
+            { tag: 'dns', count: 2 },
+            { tag: 'networking', count: 1 },
+          ],
+        },
+      ],
+      technologies: [],
+      topics: [],
+      keywords: [],
+      postCount: 2,
+      lessonCount: 4,
+      projectCount: 1,
+    });
+
+  it('mentions lessons in the summary alongside posts', () => {
+    expect(render()).toContain('4 lessons');
+  });
+
+  it('shows a per-subject tag card linking to the subject and its tags', () => {
+    const html = render();
+
+    expect(html).toContain('Tutorial tags by subject');
+    expect(html).toContain('href="/tutorials/networking"');
+    expect(html).toContain('href="/tag/dns"');
+  });
+
+  it('counts the tagged lessons in each subject card', () => {
+    expect(render()).toContain('3 tagged lessons');
+  });
+
+  it('omits the section entirely when no subject has tags', () => {
+    const html = tagsPage({
+      tags: [{ tag: 'docker', count: 1 }],
+      featured: [],
+      technologies: [],
+      topics: [],
+      keywords: [],
+      postCount: 1,
+      projectCount: 1,
+    });
+
+    expect(html).not.toContain('Tutorial tags by subject');
+  });
+});
+
 describe('about admin gallery thumbnails', () => {
   const withPhoto = {
     ...EMPTY_ABOUT,
