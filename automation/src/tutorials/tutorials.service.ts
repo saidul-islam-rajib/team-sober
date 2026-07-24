@@ -219,6 +219,14 @@ export class TutorialsService {
     );
   }
 
+  chapterLessons(chapterId: string): Tutorial[] {
+    const chapter = this.findChapterById(chapterId);
+
+    return this.lessons(chapter.subjectId, true).filter(
+      (lesson) => lesson.chapterId === chapterId,
+    );
+  }
+
   findChapterById(id: string): Chapter {
     const chapter = this.chapters.find((c) => c.id === id);
     if (!chapter) throw new NotFoundException(`No chapter with id "${id}"`);
