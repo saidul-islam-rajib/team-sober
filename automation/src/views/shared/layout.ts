@@ -15,7 +15,6 @@ interface LayoutOptions {
   variant?: 'default' | 'article' | 'admin';
   path?: string;
   image?: string;
-  /* Dimensions for a direct og:image (a generated card), so scrapers size it. */
   imageWidth?: number;
   imageHeight?: number;
   ogType?: 'website' | 'article' | 'profile';

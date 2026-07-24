@@ -110,12 +110,6 @@ ${urls}
     });
   }
 
-  /*
-   * Social-share cards. A generated PNG, cached for an hour — the scrapers at
-   * Facebook and the rest fetch og:image, and these pages have no photo of
-   * their own to offer. Rendered on demand rather than stored, since the
-   * numbers on them change as content is added.
-   */
   private async sendCard(res: Response, svg: string): Promise<void> {
     try {
       const png = await sharp(Buffer.from(svg)).png().toBuffer();
@@ -123,7 +117,6 @@ ${urls}
       res.setHeader('Cache-Control', 'public, max-age=3600');
       res.send(png);
     } catch {
-      // A share card is never worth a 500 — the page still previews with text.
       res.status(404).send('Card unavailable');
     }
   }

@@ -499,8 +499,6 @@ ${FEED_CSS}
     </aside>
   </div>`;
 
-  // The home feed gets its own branded share card; tag and search views keep
-  // the default (avatar) preview.
   const isHome = !activeTag && !query;
 
   return layout({

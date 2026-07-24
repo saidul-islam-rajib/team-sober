@@ -64,14 +64,11 @@ describe('ogCardSvg', () => {
   });
 
   it('avoids emoji so DejaVu has a glyph for everything', () => {
-    // Subject titles can carry an icon elsewhere; the card must not.
     const svg = ogCardSvg({
       ...base,
       rows: [{ label: '🌐 Networking', meta: '1 lesson' }],
     });
 
-    // The label text is still present; the point is the generator itself
-    // never injects emoji — callers pass plain titles.
     expect(svg).toContain('Networking');
   });
 

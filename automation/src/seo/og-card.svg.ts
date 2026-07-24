@@ -1,15 +1,3 @@
-/*
- * A 1200×630 social-share card, built as an SVG and rendered to PNG by sharp —
- * the same approach the completion certificate uses. Facebook, LinkedIn,
- * WhatsApp and Slack all read the og:image, and a page with no photo of its own
- * (the tutorials index, the home feed) would otherwise fall back to a small
- * round avatar that previews poorly. This gives those pages a branded card that
- * actually shows what they contain.
- *
- * Fonts are DejaVu, which the container installs (ttf-dejavu). Emoji are
- * deliberately avoided — DejaVu has no colour emoji glyphs, so they would
- * render as empty boxes in the PNG.
- */
 export const OG_CARD_WIDTH = 1200;
 export const OG_CARD_HEIGHT = 630;
 
