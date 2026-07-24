@@ -499,12 +499,17 @@ ${FEED_CSS}
     </aside>
   </div>`;
 
+  const isHome = !activeTag && !query;
+
   return layout({
     title: activeTag
       ? `Posts tagged ${activeTag} — ${getSettings().authorName}`
       : `${getSettings().authorName} — ${getSettings().siteTitle}`,
     body: body + SEARCH_JS,
     path: activeTag ? `/tag/${activeTag}` : query ? '/search' : '/',
+    image: isHome ? '/og/home.png' : undefined,
+    imageWidth: isHome ? 1200 : undefined,
+    imageHeight: isHome ? 630 : undefined,
   });
 }
 
@@ -623,7 +628,7 @@ ${PROSE_BUNDLE}
     title: `${post.title} — ${getSettings().authorName}`,
     description: post.subtitle || excerpt(post.content, 150),
     body: body + LIGHTBOX_SCRIPT + IMAGE_SKELETON,
-    variant: 'article',
+    variant: 'default',
     path: `/post/${post.slug}`,
     image: firstImage(post.content),
     ogType: 'article',

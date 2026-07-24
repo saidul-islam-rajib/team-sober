@@ -15,6 +15,8 @@ interface LayoutOptions {
   variant?: 'default' | 'article' | 'admin';
   path?: string;
   image?: string;
+  imageWidth?: number;
+  imageHeight?: number;
   ogType?: 'website' | 'article' | 'profile';
   publishedAt?: string;
   head?: string;
@@ -138,6 +140,8 @@ export function layout({
   variant = 'default',
   path = '/',
   image,
+  imageWidth,
+  imageHeight,
   ogType = 'website',
   publishedAt,
   head = '',
@@ -205,7 +209,12 @@ ${
               `<meta property="og:image:width" content="${CARD_WIDTH}" />`,
               `<meta property="og:image:height" content="${CARD_HEIGHT}" />`,
             ]
-          : []),
+          : imageWidth && imageHeight
+            ? [
+                `<meta property="og:image:width" content="${imageWidth}" />`,
+                `<meta property="og:image:height" content="${imageHeight}" />`,
+              ]
+            : []),
         previewType
           ? `<meta property="og:image:type" content="${previewType}" />`
           : '',

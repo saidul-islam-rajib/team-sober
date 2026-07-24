@@ -1,11 +1,16 @@
-import { Controller, Get, Header } from '@nestjs/common';
+import { Controller, Get, Header, Res } from '@nestjs/common';
+import type { Response } from 'express';
+import sharp from 'sharp';
 import { PostsService } from '../posts/posts.service';
 import { ProjectsService } from '../projects/projects.service';
 import { SettingsService } from '../settings/settings.service';
 import { TutorialsService } from '../tutorials/tutorials.service';
 import { termSlug } from '../projects/project.model';
+import { formatDuration } from '../tutorials/tutorial.model';
+import { hostOf } from '../settings/settings.model';
 import { renderMarkdown } from '../posts/markdown';
 import { buildFeed, xmlEscape as xml } from './feed.model';
+import { ogCardSvg } from './og-card.svg';
 
 @Controller()
 export class SeoController {
@@ -103,6 +108,66 @@ ${urls}
       posts: this.posts.findPublished(),
       renderHtml: renderMarkdown,
     });
+  }
+
+  private async sendCard(res: Response, svg: string): Promise<void> {
+    try {
+      const png = await sharp(Buffer.from(svg)).png().toBuffer();
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.send(png);
+    } catch {
+      res.status(404).send('Card unavailable');
+    }
+  }
+
+  @Get('og/tutorials.png')
+  async tutorialsCard(@Res() res: Response): Promise<void> {
+    const s = this.settings.get();
+    const subjects = this.tutorials.findSubjects();
+    const totals = this.tutorials.totals();
+
+    const rows = subjects.slice(0, 5).map((subject) => {
+      const stat = this.tutorials.stats(subject.id);
+      return {
+        label: subject.title,
+        meta: `${stat.total} ${stat.total === 1 ? 'lesson' : 'lessons'}`,
+      };
+    });
+
+    await this.sendCard(
+      res,
+      ogCardSvg({
+        eyebrow: 'Tutorials',
+        title: subjects.length ? 'Courses to work through' : s.siteTitle,
+        subtitle: `${totals.subjects} ${totals.subjects === 1 ? 'course' : 'courses'} · ${totals.tutorials} ${totals.tutorials === 1 ? 'lesson' : 'lessons'} · ${formatDuration(totals.minutes)} of reading`,
+        rows,
+        brand: `${s.authorName}${hostOf(s.siteUrl) ? ` · ${hostOf(s.siteUrl)}` : ''}`,
+      }),
+    );
+  }
+
+  @Get('og/home.png')
+  async homeCard(@Res() res: Response): Promise<void> {
+    const s = this.settings.get();
+    const posts = this.posts.findPublished().length;
+    const tutorials = this.tutorials.totals().tutorials;
+    const projects = this.projects.findAll().length;
+
+    await this.sendCard(
+      res,
+      ogCardSvg({
+        eyebrow: s.siteTitle || 'Blog',
+        title: s.authorName,
+        subtitle: s.siteTagline || s.authorBio || s.authorRole,
+        rows: [
+          { label: 'Posts', meta: String(posts) },
+          { label: 'Tutorials', meta: String(tutorials) },
+          { label: 'Projects', meta: String(projects) },
+        ],
+        brand: hostOf(s.siteUrl) || s.authorName,
+      }),
+    );
   }
 
   @Get('robots.txt')

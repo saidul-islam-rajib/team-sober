@@ -315,6 +315,102 @@ describe('home sidebar tag list', () => {
   });
 });
 
+describe('tutorials index totals', () => {
+  const render = (
+    over: Partial<{
+      chapters: number;
+      difficulties: string[];
+    }> = {},
+  ): string =>
+    tutorialsIndexPage(
+      [subject],
+      new Map([
+        [subject.id, { total: 8, minutes: 40, difficulties: ['beginner'] }],
+      ]),
+      new Map([[subject.id, [lesson.id]]]),
+      { subjects: 2, tutorials: 8, minutes: 40, ...over },
+    );
+
+  it('no longer shows total reading minutes', () => {
+    expect(render()).not.toContain('Reading time');
+  });
+
+  it('shows subjects and lessons', () => {
+    const html = render();
+
+    expect(html).toContain('<span>Subjects</span>');
+    expect(html).toContain('<span>Lessons</span>');
+  });
+
+  it('shows a chapter count when there are chapters', () => {
+    expect(render({ chapters: 5 })).toContain('<span>Chapters</span>');
+  });
+
+  it('shows the difficulty span as a captioned icon tile', () => {
+    const html = render({ difficulties: ['beginner', 'advanced'] });
+
+    expect(html).toContain('<span>Beginner–Advanced</span>');
+    expect(html).toMatch(/<b class="ico"><svg[\s\S]*?<\/svg><\/b>/);
+  });
+
+  it('advertises the completion certificate', () => {
+    expect(render()).toContain('Certificate on completion');
+  });
+});
+
+describe('justified tutorial descriptions', () => {
+  it('justifies the subject and lesson descriptions', () => {
+    expect(TUTORIALS_STYLES).toContain('.subj-card p');
+    expect(TUTORIALS_STYLES).toMatch(
+      /\.subj-card p[^{]*\{[^}]*text-align: justify/,
+    );
+  });
+});
+
+describe('social share cards', () => {
+  const tutorialsHtml = (): string =>
+    tutorialsIndexPage(
+      [subject],
+      new Map([
+        [subject.id, { total: 1, minutes: 3, difficulties: ['beginner'] }],
+      ]),
+      new Map([[subject.id, [lesson.id]]]),
+      { subjects: 1, tutorials: 1, minutes: 3 },
+    );
+
+  const homeHtml = (over: Record<string, unknown> = {}): string =>
+    homePage({
+      posts: [],
+      tags: [],
+      stats: { published: 1, tags: 0, words: 0, readingMinutes: 0 },
+      ...over,
+    });
+
+  it('gives the tutorials page its generated course card', () => {
+    const html = tutorialsHtml();
+
+    expect(html).toContain(
+      '<meta property="og:image" content="https://team-sober.com/og/tutorials.png" />',
+    );
+    expect(html).toContain('<meta property="og:image:width" content="1200" />');
+    expect(html).toContain('<meta property="og:image:height" content="630" />');
+    expect(html).toContain(
+      '<meta name="twitter:card" content="summary_large_image" />',
+    );
+  });
+
+  it('gives the home feed its own card', () => {
+    expect(homeHtml()).toContain(
+      '<meta property="og:image" content="https://team-sober.com/og/home.png" />',
+    );
+  });
+
+  it('does not put the home card on tag or search views', () => {
+    expect(homeHtml({ activeTag: 'docker' })).not.toContain('/og/home.png');
+    expect(homeHtml({ query: 'redis' })).not.toContain('/og/home.png');
+  });
+});
+
 describe('script placement', () => {
   const pages: [string, () => string][] = [
     [
