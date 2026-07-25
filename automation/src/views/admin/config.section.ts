@@ -6,6 +6,9 @@ import {
 import { attributes } from '../../shared/view/attributes';
 import { SafeHtml, html, join } from '../../shared/view/html';
 import { submitButton } from '../../shared/view/components';
+import { STRINGS } from '../../shared/strings';
+
+const T = STRINGS.settings.config;
 
 interface ConfigRow {
   field: ConfigField;
@@ -62,7 +65,9 @@ function defaultLabel(field: ConfigField): string {
 }
 
 function rangeLabel(field: ConfigField): string {
-  return field.kind === 'number' ? `${field.min}–${field.max}` : '';
+  return field.kind === 'number'
+    ? `${T.rangePrefix} ${field.min}–${field.max}`
+    : '';
 }
 
 export function configSection(values: ConfigValues): SafeHtml {
@@ -70,26 +75,26 @@ export function configSection(values: ConfigValues): SafeHtml {
 
   return html`<div class="cfg-search-card">
       <div class="cfg-search-head">
-        <span class="cfg-search-icon" aria-hidden="true"></span> Search
+        <span class="cfg-search-icon" aria-hidden="true"></span> ${T.searchTitle}
       </div>
       <div class="cfg-search-grid">
         <div class="cfg-search-field">
-          <label for="cfg-filter-name">Name</label>
+          <label for="cfg-filter-name">${T.filterNameLabel}</label>
           <input
             type="search"
             id="cfg-filter-name"
             data-cfg-filter="name"
-            placeholder="Filter by setting name"
+            placeholder="${T.filterNamePlaceholder}"
             autocomplete="off"
           />
         </div>
         <div class="cfg-search-field">
-          <label for="cfg-filter-value">Value</label>
+          <label for="cfg-filter-value">${T.filterValueLabel}</label>
           <input
             type="search"
             id="cfg-filter-value"
             data-cfg-filter="value"
-            placeholder="Filter by value"
+            placeholder="${T.filterValuePlaceholder}"
             autocomplete="off"
           />
         </div>
@@ -101,10 +106,10 @@ export function configSection(values: ConfigValues): SafeHtml {
         <table class="cfg-table">
           <thead>
             <tr>
-              <th>Setting name</th>
-              <th>Group</th>
-              <th>Value</th>
-              <th>Default</th>
+              <th>${T.colName}</th>
+              <th>${T.colGroup}</th>
+              <th>${T.colValue}</th>
+              <th>${T.colDefault}</th>
             </tr>
           </thead>
           <tbody data-cfg-rows>
@@ -131,8 +136,8 @@ export function configSection(values: ConfigValues): SafeHtml {
                     ${
                       rangeLabel(row.field)
                         ? html`<span class="cfg-range"
-                          >range ${rangeLabel(row.field)}</span
-                        >`
+                            >${rangeLabel(row.field)}</span
+                          >`
                         : ''
                     }
                     <button
@@ -141,7 +146,7 @@ export function configSection(values: ConfigValues): SafeHtml {
                       data-cfg-reset="cfg-${row.field.key}"
                       data-default="${String(row.field.default)}"
                     >
-                      Reset
+                      ${T.reset}
                     </button>
                   </td>
                 </tr>`,
@@ -149,11 +154,9 @@ export function configSection(values: ConfigValues): SafeHtml {
             )}
           </tbody>
         </table>
-        <p class="cfg-empty" data-cfg-empty hidden>
-          No settings match your search.
-        </p>
+        <p class="cfg-empty" data-cfg-empty hidden>${T.empty}</p>
       </div>
-      <div class="cfg-save">${submitButton({ label: 'Save configuration' })}</div>
+      <div class="cfg-save">${submitButton({ label: T.save })}</div>
     </form>`;
 }
 

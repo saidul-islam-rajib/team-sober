@@ -7,6 +7,7 @@ import { ConfigValues } from '../../shared/config/config.schema';
 import { toHtml } from '../../shared/view/html';
 import { adminNav, avatarMark, esc, layout } from '../shared/layout';
 import { ADMIN_HERO_STYLES } from '../shared/styles/admin.styles';
+import { STRINGS } from '../../shared/strings';
 import {
   CONFIG_SECTION_CSS,
   CONFIG_SECTION_SCRIPT,
@@ -112,12 +113,12 @@ ${CONFIG_SECTION_CSS}
 ${ADMIN_HERO_STYLES}
 </style>
 
-  ${saved ? '<div class="flash ok">Settings saved.</div>' : ''}
+  ${saved ? `<div class="flash ok">${STRINGS.settings.saved}</div>` : ''}
 
   <div class="admin-hero">
-    <a class="back-link" href="/admin">← Back to dashboard</a>
-    <h1 class="page-title">Settings</h1>
-    <p class="admin-hero-sub">Profile, site identity and footer.</p>
+    <a class="back-link" href="/admin">${STRINGS.common.backToDashboard}</a>
+    <h1 class="page-title">${STRINGS.settings.title}</h1>
+    <p class="admin-hero-sub">${STRINGS.settings.subtitle}</p>
   </div>
 
   <form method="post" action="/admin/settings">
@@ -308,11 +309,8 @@ ${ADMIN_HERO_STYLES}
   ${
     config
       ? `<div class="config-block">
-    <h2>Platform configuration</h2>
-    <p class="lead">
-      Operational limits, saved separately from your profile. Changes take
-      effect immediately, with no redeploy.
-    </p>
+    <h2>${STRINGS.settings.config.heading}</h2>
+    <p class="lead">${STRINGS.settings.config.lead}</p>
     ${toHtml(configSection(config))}
   </div>`
       : ''
