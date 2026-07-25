@@ -8,6 +8,44 @@ export const ADMIN_CHROME_STYLES = `
   .inline-form { display: inline; }
 `;
 
+export const ADMIN_HERO_STYLES = `
+  .admin-hero {
+    position: relative; overflow: hidden;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--surface-2)), var(--surface-2));
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.5rem 1.75rem 1.6rem; margin-bottom: 1.9rem;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 4%, transparent);
+  }
+  .admin-hero::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--accent);
+  }
+  .admin-hero .back-link { margin-bottom: 0.55rem; }
+  .admin-hero .page-title { margin-bottom: 0.4rem; }
+  .admin-hero-row { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+  .admin-hero-sub { font-size: 0.9rem; color: var(--ink-3); line-height: 1.6; }
+  .admin-hero-sub a { color: var(--accent); font-weight: 600; }
+  .admin-hero-sub a:hover { text-decoration: underline; }
+  .hero-count {
+    display: inline-flex; align-items: center; vertical-align: 0.05em;
+    font-size: 0.76rem; font-weight: 700; letter-spacing: 0.01em;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    padding: 0.15rem 0.6rem; border-radius: 100px; margin-right: 0.35rem;
+  }
+  .admin-hero-actions { margin-left: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .admin-hero .admin-search { margin: 1.25rem 0 0; }
+  .admin-hero .admin-search input { background: var(--bg); }
+  @media (max-width: 640px) {
+    .admin-hero { padding: 1.25rem 1.15rem 1.35rem; border-radius: 14px; }
+    .admin-hero-row { align-items: stretch; }
+    .admin-hero-actions { margin-left: 0; width: 100%; }
+    .admin-hero-actions form, .admin-hero-actions .btn { flex: 1; }
+    .admin-hero-actions .btn { justify-content: center; width: 100%; }
+  }
+`;
+
 export const ADMIN_PANEL_STYLES = `
   .panel {
     background: var(--surface-2); border: 1px solid var(--border);

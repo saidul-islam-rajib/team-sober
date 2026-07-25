@@ -85,6 +85,14 @@ export class CertificatesService {
       .sort((a, b) => b.issuedAt.localeCompare(a.issuedAt));
   }
 
+  totalIssued(): number {
+    return this.certificates.length;
+  }
+
+  certifiedStudents(): number {
+    return new Set(this.certificates.map((c) => c.accountId)).size;
+  }
+
   issue(accountId: string, subjectId: string, holder: string): Certificate {
     const existing = this.find(accountId, subjectId);
     if (existing) return existing;

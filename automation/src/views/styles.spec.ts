@@ -320,6 +320,8 @@ describe('tutorials index totals', () => {
     over: Partial<{
       chapters: number;
       difficulties: string[];
+      students: number;
+      certificates: number;
     }> = {},
   ): string =>
     tutorialsIndexPage(
@@ -355,6 +357,34 @@ describe('tutorials index totals', () => {
 
   it('advertises the completion certificate', () => {
     expect(render()).toContain('Certificate on completion');
+  });
+
+  it('shows certified students and certificates earned when there are any', () => {
+    const html = render({ students: 12, certificates: 18 });
+
+    expect(html).toContain('<b>12</b><span>Certified students</span>');
+    expect(html).toContain('<b>18</b><span>Certificates earned</span>');
+  });
+
+  it('singularises a lone student or certificate', () => {
+    const html = render({ students: 1, certificates: 1 });
+
+    expect(html).toContain('<span>Certified student</span>');
+    expect(html).toContain('<span>Certificate earned</span>');
+  });
+
+  it('hides the student and certificate tiles when there are none', () => {
+    const html = render({ students: 0, certificates: 0 });
+
+    expect(html).not.toContain('Certified student');
+    expect(html).not.toContain('Certificate earned');
+  });
+
+  it('centres the row and each tile over its label', () => {
+    expect(TUTORIALS_STYLES).toMatch(
+      /\.tut-totals \{[^}]*justify-content: center/,
+    );
+    expect(TUTORIALS_STYLES).toContain('.tut-total { text-align: center; }');
   });
 });
 

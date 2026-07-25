@@ -6,6 +6,7 @@ import {
   STATUS_LABELS,
 } from '../../projects/project.model';
 import { IMAGE_SKELETON, adminNav, esc, layout } from '../shared/layout';
+import { ADMIN_HERO_STYLES } from '../shared/styles/admin.styles';
 import { CHIP_CSS, CHIP_JS } from '../shared/scripts/chip-input';
 import {
   MARKDOWN_EDITOR_SCRIPT,
@@ -40,6 +41,7 @@ const CSS = `
   .admin-search { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
   .admin-search input { flex: 1; min-width: 200px; border-radius: 100px; padding-left: 1rem; }
   .search-note { font-size: 0.85rem; color: var(--ink-3); margin-bottom: 0.85rem; }
+${ADMIN_HERO_STYLES}
 
   .pager {
     display: flex; align-items: center; justify-content: space-between;
@@ -137,32 +139,34 @@ export function projectsAdminPage(opts: {
 ${CSS}
   ${flash ? `<div class="flash ${flash.kind}">${esc(flash.text)}</div>` : ''}
 
-  <div class="toolbar">
-    <div>
-      <a class="back-link" href="/admin">← Back to dashboard</a>
-      <h1 class="page-title" style="margin-bottom:.15rem">Projects</h1>
-      <p style="color:var(--ink-3);font-size:.9rem">
-        ${projects.length} project${projects.length === 1 ? '' : 's'} ·
-        <a href="/projects" style="color:var(--accent)">View page →</a>
-      </p>
+  <div class="admin-hero">
+    <a class="back-link" href="/admin">← Back to dashboard</a>
+    <div class="admin-hero-row">
+      <div>
+        <h1 class="page-title">Projects</h1>
+        <p class="admin-hero-sub">
+          <span class="hero-count">${projects.length} project${projects.length === 1 ? '' : 's'}</span>
+          <a href="/projects">View page →</a>
+        </p>
+      </div>
+      <div class="admin-hero-actions">
+        <form method="post" action="/admin/projects/import"
+              onsubmit="return confirm('Import public repositories from GitHub? Existing projects are matched by repository URL and left untouched.')">
+          <button class="btn btn-ghost" type="submit" ${githubUser ? '' : 'disabled title="Set a GitHub username in Settings first"'}>
+            ↓ Import from GitHub${githubUser ? ` (@${esc(githubUser)})` : ''}
+          </button>
+        </form>
+        <a class="btn" href="/admin/projects/new">＋ New project</a>
+      </div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:.5rem;flex-wrap:wrap">
-      <form method="post" action="/admin/projects/import"
-            onsubmit="return confirm('Import public repositories from GitHub? Existing projects are matched by repository URL and left untouched.')">
-        <button class="btn btn-ghost" type="submit" ${githubUser ? '' : 'disabled title="Set a GitHub username in Settings first"'}>
-          ↓ Import from GitHub${githubUser ? ` (@${esc(githubUser)})` : ''}
-        </button>
-      </form>
-      <a class="btn" href="/admin/projects/new">＋ New project</a>
-    </div>
-  </div>
 
-  <form class="admin-search" action="/admin/projects" method="get" role="search">
-    <input type="search" name="q" value="${esc(query)}"
-           placeholder="Search titles, descriptions, technologies or tags…" aria-label="Search projects" />
-    <button class="btn" type="submit">Search</button>
-    ${query ? '<a class="btn btn-ghost" href="/admin/projects">Clear</a>' : ''}
-  </form>
+    <form class="admin-search" action="/admin/projects" method="get" role="search">
+      <input type="search" name="q" value="${esc(query)}"
+             placeholder="Search titles, descriptions, technologies or tags…" aria-label="Search projects" />
+      <button class="btn" type="submit">Search</button>
+      ${query ? '<a class="btn btn-ghost" href="/admin/projects">Clear</a>' : ''}
+    </form>
+  </div>
 
   ${
     query

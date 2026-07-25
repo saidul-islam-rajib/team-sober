@@ -22,6 +22,7 @@ function thumb(url: string): string {
   </span>`;
 }
 import { adminNav, esc, layout } from '../shared/layout';
+import { ADMIN_HERO_STYLES } from '../shared/styles/admin.styles';
 
 const ADMIN_ABOUT_CSS = `
 <style>
@@ -173,6 +174,7 @@ const ADMIN_ABOUT_CSS = `
     color: var(--accent); font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
+${ADMIN_HERO_STYLES}
 </style>`;
 
 function rowHead(label: string): string {
@@ -340,15 +342,13 @@ export function aboutAdminPage(about: AboutContent, saved = false): string {
 ${ADMIN_ABOUT_CSS}
   ${saved ? '<div class="flash ok">About page saved.</div>' : ''}
 
-  <div class="toolbar">
-    <div>
-      <a class="back-link" href="/admin">← Back to dashboard</a>
-      <h1 class="page-title" style="margin-bottom:.15rem">About page</h1>
-      <p style="color:var(--ink-3);font-size:.9rem">
-        Your story, journey, topics, learning plans and photos.
-        <a href="/about" style="color:var(--accent)">View page →</a>
-      </p>
-    </div>
+  <div class="admin-hero">
+    <a class="back-link" href="/admin">← Back to dashboard</a>
+    <h1 class="page-title">About page</h1>
+    <p class="admin-hero-sub">
+      Your story, journey, topics, learning plans and photos.
+      <a href="/about">View page →</a>
+    </p>
   </div>
 
   <form method="post" action="/admin/about">

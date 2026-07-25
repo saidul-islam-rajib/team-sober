@@ -72,6 +72,8 @@ export function tutorialsIndexPage(
     minutes: number;
     chapters?: number;
     difficulties?: string[];
+    students?: number;
+    certificates?: number;
   },
   progress: ProgressState = NO_PROGRESS_STATE,
 ): string {
@@ -114,6 +116,16 @@ export function tutorialsIndexPage(
         ${
           totals.difficulties && totals.difficulties.length
             ? `<div class="tut-total"><b class="ico">${LEVEL_ICON}</b><span>${esc(levelSpan(totals.difficulties))}</span></div>`
+            : ''
+        }
+        ${
+          totals.students
+            ? `<div class="tut-total"><b>${totals.students}</b><span>${pluralise(totals.students, 'Certified student', 'Certified students')}</span></div>`
+            : ''
+        }
+        ${
+          totals.certificates
+            ? `<div class="tut-total"><b>${totals.certificates}</b><span>${pluralise(totals.certificates, 'Certificate earned', 'Certificates earned')}</span></div>`
             : ''
         }
         <div class="tut-total"><b>✓</b><span>Certificate on completion</span></div>

@@ -84,4 +84,27 @@ describe('CertificatesService', () => {
     expect(reopened.issue('user-1', 'course-1', 'Rajib').id).toBe(first.id);
     expect(reopened.forAccount('user-1')).toHaveLength(1);
   });
+
+  describe('public counts', () => {
+    it('reports zero on an empty store', () => {
+      expect(service.totalIssued()).toBe(0);
+      expect(service.certifiedStudents()).toBe(0);
+    });
+
+    it('counts total certificates issued', () => {
+      service.issue('user-1', 'course-1', 'A');
+      service.issue('user-1', 'course-2', 'A');
+      service.issue('user-2', 'course-1', 'B');
+
+      expect(service.totalIssued()).toBe(3);
+    });
+
+    it('counts distinct certified students, not certificates', () => {
+      service.issue('user-1', 'course-1', 'A');
+      service.issue('user-1', 'course-2', 'A'); // same student, second course
+      service.issue('user-2', 'course-1', 'B');
+
+      expect(service.certifiedStudents()).toBe(2);
+    });
+  });
 });

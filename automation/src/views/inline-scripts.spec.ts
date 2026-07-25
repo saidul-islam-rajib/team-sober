@@ -423,3 +423,35 @@ describe('about admin gallery thumbnails', () => {
     expect(script).toContain('loading="lazy"');
   });
 });
+
+describe('justified full-width hero paragraphs', () => {
+  it('justifies the projects intro and lets it fill the width', () => {
+    const html = projectsPage({
+      groups: [{ year: '2026', projects: [project] }],
+      total: 1,
+      years: ['2026'],
+      techs: [{ term: 'typescript', slug: 'typescript', count: 1 }],
+      query: '',
+      activeYear: '',
+      activeTech: '',
+    });
+
+    expect(html).toMatch(/\.proj-hero p \{[^}]*text-align: justify/);
+    expect(html).not.toMatch(/\.proj-hero p \{[^}]*max-width/);
+  });
+
+  it('justifies the tags/explore intro and lets it fill the width', () => {
+    const html = tagsPage({
+      tags: [{ tag: 'docker', count: 1 }],
+      featured: [],
+      technologies: [],
+      topics: [],
+      keywords: [],
+      postCount: 1,
+      projectCount: 1,
+    });
+
+    expect(html).toMatch(/\.explore-hero p \{[^}]*text-align: justify/);
+    expect(html).not.toMatch(/\.explore-hero p \{[^}]*max-width/);
+  });
+});

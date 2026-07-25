@@ -6,7 +6,13 @@ import {
 import { ConfigValues } from '../../shared/config/config.schema';
 import { toHtml } from '../../shared/view/html';
 import { adminNav, avatarMark, esc, layout } from '../shared/layout';
-import { CONFIG_SECTION_CSS, configSection } from './config.section';
+import { ADMIN_HERO_STYLES } from '../shared/styles/admin.styles';
+import { STRINGS } from '../../shared/strings';
+import {
+  CONFIG_SECTION_CSS,
+  CONFIG_SECTION_SCRIPT,
+  configSection,
+} from './config.section';
 
 export function settingsPage(
   s: SiteSettings,
@@ -27,6 +33,13 @@ export function settingsPage(
   .card-block {
     background: var(--surface-2); border: 1px solid var(--border);
     border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem;
+    transition: border-color .18s, box-shadow .18s;
+  }
+  .card-block:hover {
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  }
+  .card-block[open] {
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 5%, transparent);
   }
   /* Native <details> so panels stay keyboard accessible and collapsed
      fields still submit with the form. */
@@ -80,22 +93,32 @@ export function settingsPage(
   }
   .url-warning b { color: inherit; }
 ${CONFIG_SECTION_CSS}
-  .config-block { margin-top: 2rem; }
-  .config-block > h2 {
-    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--ink-3); font-weight: 700; margin-bottom: 0.4rem;
+  .config-block {
+    margin-top: 2.75rem; padding-top: 2rem;
+    border-top: 1px solid var(--border);
   }
-  .config-block > p.lead { font-size: 0.86rem; color: var(--ink-3); margin-bottom: 1.1rem; }
+  .config-block > h2 {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-family: var(--serif); font-size: 1.35rem; letter-spacing: -0.01em;
+    color: var(--ink); font-weight: 700; margin-bottom: 0.4rem;
+  }
+  .config-block > h2::before {
+    content: ""; width: 4px; height: 1.05em; border-radius: 2px;
+    background: var(--accent);
+  }
+  .config-block > p.lead {
+    font-size: 0.9rem; color: var(--ink-3); line-height: 1.55;
+    margin-bottom: 1.5rem; max-width: 48em;
+  }
+${ADMIN_HERO_STYLES}
 </style>
 
-  ${saved ? '<div class="flash ok">Settings saved.</div>' : ''}
+  ${saved ? `<div class="flash ok">${STRINGS.settings.saved}</div>` : ''}
 
-  <div class="toolbar">
-    <div>
-      <h1 class="page-title" style="margin-bottom:.15rem">Settings</h1>
-      <p style="color:var(--ink-3);font-size:.9rem">Profile, site identity and footer.</p>
-    </div>
-    <a class="btn btn-ghost" href="/admin" style="margin-left:auto">Back to dashboard</a>
+  <div class="admin-hero">
+    <a class="back-link" href="/admin">${STRINGS.common.backToDashboard}</a>
+    <h1 class="page-title">${STRINGS.settings.title}</h1>
+    <p class="admin-hero-sub">${STRINGS.settings.subtitle}</p>
   </div>
 
   <form method="post" action="/admin/settings">
@@ -286,11 +309,8 @@ ${CONFIG_SECTION_CSS}
   ${
     config
       ? `<div class="config-block">
-    <h2>Platform configuration</h2>
-    <p class="lead">
-      Operational limits, saved separately from your profile. Changes take
-      effect immediately, with no redeploy.
-    </p>
+    <h2>${STRINGS.settings.config.heading}</h2>
+    <p class="lead">${STRINGS.settings.config.lead}</p>
     ${toHtml(configSection(config))}
   </div>`
       : ''
@@ -355,7 +375,8 @@ ${CONFIG_SECTION_CSS}
     });
   });
 })();
-</script>`;
+</script>
+${config ? CONFIG_SECTION_SCRIPT : ''}`;
 
   return layout({
     title: 'Settings — ' + s.authorName,

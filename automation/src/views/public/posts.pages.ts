@@ -710,7 +710,10 @@ export function tagsPage(opts: {
     font-family: var(--serif); font-size: clamp(2rem, 5vw, 2.9rem);
     line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 0.7rem;
   }
-  .explore-hero p { color: var(--ink-3); font-size: 1.04rem; max-width: 40em; }
+  .explore-hero p {
+    color: var(--ink-3); font-size: 1.04rem;
+    text-align: justify; hyphens: auto; -webkit-hyphens: auto; text-wrap: pretty;
+  }
   .explore-section { margin-bottom: 3rem; }
   .section-blurb { font-size: 0.88rem; color: var(--ink-3); margin: -0.5rem 0 1rem; }
 
