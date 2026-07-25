@@ -7,7 +7,11 @@ import { ConfigValues } from '../../shared/config/config.schema';
 import { toHtml } from '../../shared/view/html';
 import { adminNav, avatarMark, esc, layout } from '../shared/layout';
 import { ADMIN_HERO_STYLES } from '../shared/styles/admin.styles';
-import { CONFIG_SECTION_CSS, configSection } from './config.section';
+import {
+  CONFIG_SECTION_CSS,
+  CONFIG_SECTION_SCRIPT,
+  configSection,
+} from './config.section';
 
 export function settingsPage(
   s: SiteSettings,
@@ -373,7 +377,8 @@ ${ADMIN_HERO_STYLES}
     });
   });
 })();
-</script>`;
+</script>
+${config ? CONFIG_SECTION_SCRIPT : ''}`;
 
   return layout({
     title: 'Settings — ' + s.authorName,
