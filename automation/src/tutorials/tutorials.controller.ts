@@ -143,17 +143,19 @@ export class TutorialsController {
       );
     }
 
-    res
-      .type('html')
-      .send(
-        tutorialsIndexPage(
-          subjects,
-          stats,
-          lessonIds,
-          this.tutorials.totals(),
-          this.progressState(req),
-        ),
-      );
+    res.type('html').send(
+      tutorialsIndexPage(
+        subjects,
+        stats,
+        lessonIds,
+        {
+          ...this.tutorials.totals(),
+          students: this.certificates.certifiedStudents(),
+          certificates: this.certificates.totalIssued(),
+        },
+        this.progressState(req),
+      ),
+    );
   }
 
   @Get(':subject')

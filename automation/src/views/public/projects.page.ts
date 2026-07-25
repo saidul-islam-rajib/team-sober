@@ -18,7 +18,10 @@ const PROJECTS_CSS = `
     font-family: var(--serif); font-size: clamp(2rem, 5vw, 2.9rem);
     line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 0.7rem;
   }
-  .proj-hero p { color: var(--ink-3); max-width: 34em; font-size: 1.04rem; }
+  .proj-hero p {
+    color: var(--ink-3); font-size: 1.04rem;
+    text-align: justify; hyphens: auto; -webkit-hyphens: auto; text-wrap: pretty;
+  }
 
   .filters {
     display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
