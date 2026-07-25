@@ -10,9 +10,16 @@ export const ADMIN_CHROME_STYLES = `
 
 export const ADMIN_HERO_STYLES = `
   .admin-hero {
-    background: linear-gradient(180deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 55%, var(--bg)));
+    position: relative; overflow: hidden;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--surface-2)), var(--surface-2));
     border: 1px solid var(--border); border-radius: 16px;
     padding: 1.5rem 1.75rem 1.6rem; margin-bottom: 1.9rem;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 4%, transparent);
+  }
+  .admin-hero::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--accent);
   }
   .admin-hero .back-link { margin-bottom: 0.55rem; }
   .admin-hero .page-title { margin-bottom: 0.4rem; }

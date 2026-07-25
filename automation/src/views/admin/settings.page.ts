@@ -6,6 +6,7 @@ import {
 import { ConfigValues } from '../../shared/config/config.schema';
 import { toHtml } from '../../shared/view/html';
 import { adminNav, avatarMark, esc, layout } from '../shared/layout';
+import { ADMIN_HERO_STYLES } from '../shared/styles/admin.styles';
 import { CONFIG_SECTION_CSS, configSection } from './config.section';
 
 export function settingsPage(
@@ -104,16 +105,15 @@ ${CONFIG_SECTION_CSS}
     font-size: 0.9rem; color: var(--ink-3); line-height: 1.55;
     margin-bottom: 1.5rem; max-width: 48em;
   }
+${ADMIN_HERO_STYLES}
 </style>
 
   ${saved ? '<div class="flash ok">Settings saved.</div>' : ''}
 
-  <div class="toolbar">
-    <div>
-      <h1 class="page-title" style="margin-bottom:.15rem">Settings</h1>
-      <p style="color:var(--ink-3);font-size:.9rem">Profile, site identity and footer.</p>
-    </div>
-    <a class="btn btn-ghost" href="/admin" style="margin-left:auto">Back to dashboard</a>
+  <div class="admin-hero">
+    <a class="back-link" href="/admin">← Back to dashboard</a>
+    <h1 class="page-title">Settings</h1>
+    <p class="admin-hero-sub">Profile, site identity and footer.</p>
   </div>
 
   <form method="post" action="/admin/settings">
