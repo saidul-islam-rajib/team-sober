@@ -1,4 +1,4 @@
-# AWS Demo Project — Personal Blog & Portfolio
+# TeamSober — Personal Blog & Portfolio
 
 A server-rendered blog and project portfolio built with **NestJS**, containerised with **Docker**,
 and deployed to an **AWS EC2** instance by a **Jenkins** pipeline. A push to `main` rebuilds the

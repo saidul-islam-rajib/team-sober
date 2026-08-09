@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   authorBio: '',
   avatarUrl: '',
 
-  siteTitle: 'Engineering notes',
+  siteTitle: 'TeamSober',
   siteTagline:
     'Backend development, DevOps and cloud infrastructure — written up as I work through them.',
   siteUrl: 'https://team-sober.com',
@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   githubUser: '',
   showIntro: true,
 
-  footerOwner: 'Team Sober',
+  footerOwner: 'TeamSober',
   footerOwnerUrl: 'https://portfolio-rajib.vercel.app/',
   footerSuffix: 'All rights reserved.',
   footerLinks: [
