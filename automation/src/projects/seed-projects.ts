@@ -2,7 +2,7 @@ import { ProjectInput } from './project.model';
 
 export const SEED_PROJECTS: ProjectInput[] = [
   {
-    title: 'TeamSober',
+    title: 'Team Sober',
     description:
       'A NestJS blog and portfolio deployed to AWS EC2 by a Jenkins pipeline.',
     detailedDescription:

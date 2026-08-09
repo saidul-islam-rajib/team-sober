@@ -1,4 +1,4 @@
-const CACHE_NAME = 'teamsober-shell-v1';
+const CACHE_NAME = 'team-sober-shell-v1';
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',

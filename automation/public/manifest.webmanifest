@@ -1,6 +1,6 @@
 {
-  "name": "TeamSober",
-  "short_name": "TeamSober",
+  "name": "Team Sober",
+  "short_name": "Team Sober",
   "description": "A polished, mobile-friendly view of posts, tutorials, projects and more.",
   "start_url": "/",
   "display": "standalone",

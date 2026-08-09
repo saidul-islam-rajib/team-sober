@@ -139,7 +139,7 @@ describe('ProjectsService', () => {
 
   const sample = () =>
     service.create({
-      title: 'TeamSober',
+      title: 'AWS Demo Project',
       description: 'A blog deployed by Jenkins',
       repoUrl: 'https://github.com/saidul-islam-rajib/AWS_Demo_Project',
       technologies: 'TypeScript, Docker',
