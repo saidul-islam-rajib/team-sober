@@ -12,6 +12,16 @@ import { AppModule } from '../../src/app.module';
 
 export const PASSWORD = 'test-password';
 
+/**
+ * Sessions are signed with this in tests, so a suite can mint a token as if it
+ * were one of the sibling applications and check it is honoured here.
+ */
+export const AUTH_SECRET = 'an-end-to-end-test-secret-of-sufficient-length';
+
+export const LEARNER_PASSWORD = 'correct-horse-battery';
+
+const SESSION_COOKIE = 'ts_identity';
+
 export interface HealthBody {
   status: string;
   uptime: number;
@@ -70,6 +80,7 @@ export function useTestApp(): TestContext {
     ctx.dir = mkdtempSync(join(tmpdir(), 'blog-e2e-'));
     process.env.DATA_DIR = ctx.dir;
     process.env.ADMIN_PASSWORD = PASSWORD;
+    process.env.AUTH_SECRET = AUTH_SECRET;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -86,8 +97,60 @@ export function useTestApp(): TestContext {
     await ctx.app.close();
     delete process.env.DATA_DIR;
     delete process.env.ADMIN_PASSWORD;
+    delete process.env.AUTH_SECRET;
     rmSync(ctx.dir, { recursive: true, force: true });
   });
 
   return ctx;
+}
+
+/**
+ * The dev-mode set-password link, which the check-your-email page prints
+ * whenever no SMTP server is configured — which is always, in tests.
+ */
+export function setupLinkFrom(html: string): string {
+  return (
+    /id="setup-link"[^>]*>([^<]+)</
+      .exec(html)?.[1]
+      .trim()
+      .replace(/&amp;/g, '&') ?? ''
+  );
+}
+
+export function sessionCookieFrom(res: request.Response): string {
+  const cookies = (res.headers['set-cookie'] as unknown as string[]) ?? [];
+
+  return cookies.find((cookie) => cookie.startsWith(SESSION_COOKIE)) ?? '';
+}
+
+/**
+ * Register a learner, follow the link that would have been emailed, choose a
+ * password, and hand back the session cookie — the whole sign-up in one call.
+ */
+export async function learnerSession(
+  ctx: TestContext,
+  overrides: { name?: string; email?: string; password?: string } = {},
+): Promise<string> {
+  const {
+    name = 'Saidul Islam Rajib',
+    email = 'rajib@example.com',
+    password = LEARNER_PASSWORD,
+  } = overrides;
+
+  const registered = await request(ctx.server)
+    .post('/account/register')
+    .type('form')
+    .send({ name, email })
+    .expect(200);
+
+  const link = setupLinkFrom(registered.text);
+  const token = new URL(link).searchParams.get('token') ?? '';
+
+  const res = await request(ctx.server)
+    .post('/account/set-password')
+    .type('form')
+    .send({ token, password })
+    .expect(302);
+
+  return sessionCookieFrom(res);
 }

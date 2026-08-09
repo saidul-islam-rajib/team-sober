@@ -19,9 +19,9 @@ export const ACCOUNT_BENEFITS: AccountBenefit[] = [
   },
   {
     icon: '⚿',
-    title: 'A way back in',
+    title: 'One account, every service',
     detail:
-      'You get a recovery code at sign-up, and can swap it for a fresh one whenever you are signed in. Nothing is emailed to you and your address is never shared.',
+      'The same sign-in works across Team Sober. Register once and the other services know you already.',
   },
 ];
 
@@ -32,17 +32,17 @@ export interface AccountStep {
 
 export const REGISTRATION_STEPS: AccountStep[] = [
   {
-    title: 'Create your account',
-    detail: 'Name, email and a password. That is the whole form.',
+    title: 'Tell us your name and address',
+    detail: 'That is the whole form — no password to think of yet.',
   },
   {
-    title: 'Save your recovery code',
+    title: 'Open the link we email you',
     detail:
-      'Shown once, straight after. Lost it later? Ask for a new one from your account page.',
+      'It works once, and choosing a password is what proves the address is yours.',
   },
   {
     title: 'Start learning',
     detail:
-      'You are signed in already, and stay signed in as long as your session lasts.',
+      'Setting the password signs you in, and you stay signed in as long as your session lasts.',
   },
 ];

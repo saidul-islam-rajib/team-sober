@@ -17,7 +17,7 @@ export class AccountResetService {
     label: 'account reset(s)',
   });
 
-  issue(accountId: string, note: string): string {
+  async issue(accountId: string, note: string): Promise<string> {
     this.revoke(accountId);
 
     const code = newCode();
@@ -26,7 +26,7 @@ export class AccountResetService {
     this.store.add({
       id: randomUUID(),
       accountId,
-      secret: seal(code),
+      secret: await seal(code),
       note: note.trim().slice(0, 300),
       issuedAt: new Date(now).toISOString(),
       expiresAt: new Date(now + RecoveryPolicy.resetLinkMs).toISOString(),
@@ -72,11 +72,15 @@ export class AccountResetService {
     return true;
   }
 
-  consume(accountId: string, code?: string, now = Date.now()): boolean {
+  async consume(
+    accountId: string,
+    code?: string,
+    now = Date.now(),
+  ): Promise<boolean> {
     const outstanding = this.live(accountId, now);
     if (!outstanding) return false;
 
-    if (!sealMatches(outstanding.secret, normaliseRecoveryCode(code))) {
+    if (!(await sealMatches(outstanding.secret, normaliseRecoveryCode(code)))) {
       return false;
     }
 

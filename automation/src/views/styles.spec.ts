@@ -124,8 +124,12 @@ describe('pwa shell', () => {
   it('adds manifest and service worker hooks to the shared layout', () => {
     const html = layout({ title: 'Test page', body: '<p>Hello</p>' });
 
-    expect(html).toContain('<link rel="manifest" href="/manifest.webmanifest" />');
-    expect(html).toContain("navigator.serviceWorker.register('/service-worker.js')");
+    expect(html).toContain(
+      '<link rel="manifest" href="/manifest.webmanifest" />',
+    );
+    expect(html).toContain(
+      "navigator.serviceWorker.register('/service-worker.js')",
+    );
   });
 });
 

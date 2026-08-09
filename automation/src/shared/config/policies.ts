@@ -18,6 +18,15 @@ export const SecurityPolicy = {
   },
 };
 
+export const AccountPolicy = {
+  get passwordLinkMinutes(): number {
+    return configNumber('accounts.passwordLinkMinutes');
+  },
+  get passwordLinkMs(): number {
+    return configNumber('accounts.passwordLinkMinutes') * MINUTE;
+  },
+};
+
 export const RecoveryPolicy = {
   get resetLinkMinutes(): number {
     return configNumber('recovery.resetLinkMinutes');

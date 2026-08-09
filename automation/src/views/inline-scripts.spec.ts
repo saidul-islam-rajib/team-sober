@@ -20,11 +20,12 @@ import {
 import { accountDetailPage, accountsAdminPage } from './admin/accounts.page';
 import {
   accountPage,
+  checkEmailPage,
   recoverPage,
-  recoveryCodePage,
   resetPage,
+  setPasswordPage,
 } from './public/account.pages';
-import { Account } from '../accounts/account.model';
+import { Account, AccountStatus } from '../accounts/account.model';
 import { EMPTY_ABOUT } from '../about/about.model';
 import { DEFAULT_SETTINGS } from '../settings/settings.model';
 import { Post } from '../posts/post.model';
@@ -124,10 +125,12 @@ const account: Account = {
   id: 'a1',
   name: 'Saidul Islam Rajib',
   email: 'rajib@example.com',
-  secret: 'salt:digest',
-  recovery: 'salt:digest',
+  secret: 'scrypt$16384$8$1$c2FsdA==$ZGlnZXN0',
+  status: AccountStatus.Active,
+  tokenVersion: 1,
   createdAt: '2026-01-01T00:00:00.000Z',
-  recoveryIssuedAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+  origin: 'team-sober',
 };
 
 const pages: [string, () => string][] = [
@@ -224,16 +227,23 @@ const pages: [string, () => string][] = [
   ],
   ['lesson editor (new)', () => lessonEditorPage([subject], subject)],
   ['lesson editor (edit)', () => lessonEditorPage([subject], subject, lesson)],
+  ['account home', () => accountPage({ account, certificates: [] })],
   [
-    'account home',
+    'check your email',
     () =>
-      accountPage({
-        account,
-        certificates: [],
-        recoveryIssuedAt: account.recoveryIssuedAt,
+      checkEmailPage({
+        email: account.email,
+        devLink: 'http://localhost:3000/account/set-password?token=abc',
       }),
   ],
-  ['account recovery code', () => recoveryCodePage('ABCDEFGHJKLMNPQRSTUV')],
+  [
+    'set password',
+    () => setPasswordPage({ valid: true, token: 'abc', name: account.name }),
+  ],
+  [
+    'set password (spent link)',
+    () => setPasswordPage({ valid: false, error: 'That link has expired.' }),
+  ],
   ['account recover', () => recoverPage()],
   ['account reset', () => resetPage({ code: 'ABCDEFGHJKLMNPQRSTUV' })],
   [

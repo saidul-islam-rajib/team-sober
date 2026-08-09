@@ -3,14 +3,16 @@ import {
   EMAIL_PATTERN,
   MAX_EMAIL_LENGTH,
   MAX_NAME_LENGTH,
+  MAX_PASSWORD_LENGTH,
 } from './account.constants';
 import { hasCodeLength } from './recovery-code';
 import {
   CredentialsInput,
+  ForgotInput,
   RecoveryInput,
   RecoveryRequestInput,
   RegisterInput,
-  RotateInput,
+  SetPasswordInput,
 } from './account.dto';
 
 export function normaliseName(value?: string): string {
@@ -26,11 +28,25 @@ export function validEmail(value?: string): boolean {
 }
 
 export function validPassword(value?: string): boolean {
-  return (value ?? '').length >= RecoveryPolicy.minPasswordLength;
+  const length = (value ?? '').length;
+
+  return (
+    length >= RecoveryPolicy.minPasswordLength && length <= MAX_PASSWORD_LENGTH
+  );
 }
 
 function passwordRequirement(): string {
   return `at least ${RecoveryPolicy.minPasswordLength} characters`;
+}
+
+export function passwordProblem(value?: string): string {
+  if ((value ?? '').length > MAX_PASSWORD_LENGTH) {
+    return `Choose a password of ${MAX_PASSWORD_LENGTH} characters or fewer.`;
+  }
+
+  return validPassword(value)
+    ? ''
+    : `Choose a password of ${passwordRequirement()}.`;
 }
 
 export function registrationProblem(input: RegisterInput): string {
@@ -38,8 +54,6 @@ export function registrationProblem(input: RegisterInput): string {
     return 'Enter the name you want on your certificates.';
   if (!validEmail(input.email))
     return 'Enter an email address that looks right.';
-  if (!validPassword(input.password))
-    return `Choose a password of ${passwordRequirement()}.`;
 
   return '';
 }
@@ -51,15 +65,14 @@ export function credentialsProblem(input: CredentialsInput): string {
   return '';
 }
 
-export function recoveryProblem(input: RecoveryInput): string {
-  if (!validEmail(input.email))
-    return 'Enter the email address on the account.';
-  if (!hasCodeLength(input.code))
-    return 'Enter the recovery code you were given when you registered.';
-  if (!validPassword(input.password))
-    return `Choose a new password of ${passwordRequirement()}.`;
+export function setPasswordProblem(input: SetPasswordInput): string {
+  return passwordProblem(input.password);
+}
 
-  return '';
+export function forgotProblem(input: ForgotInput): string {
+  return validEmail(input.email)
+    ? ''
+    : 'Enter the email address on the account.';
 }
 
 export function resetProblem(input: RecoveryInput): string {
@@ -67,20 +80,13 @@ export function resetProblem(input: RecoveryInput): string {
     return 'Enter the email address on the account.';
   if (!hasCodeLength(input.code))
     return 'Enter the reset code from the link you were given.';
-  if (!validPassword(input.password))
-    return `Choose a new password of ${passwordRequirement()}.`;
 
-  return '';
-}
-
-export function rotationProblem(input: RotateInput): string {
-  return input.password
-    ? ''
-    : 'Enter your password to be given a new recovery code.';
+  return passwordProblem(input.password);
 }
 
 export function recoveryRequestProblem(input: RecoveryRequestInput): string {
-  if (!validEmail(input.email)) return 'Enter the email address on the account.';
+  if (!validEmail(input.email))
+    return 'Enter the email address on the account.';
   if (!(input.course ?? '').trim() && !(input.note ?? '').trim()) {
     return 'Tell the owner which course you were taking, so they can find you.';
   }

@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { useTestApp } from './helpers/harness';
+import { learnerSession, useTestApp } from './helpers/harness';
 
 const ctx = useTestApp();
 
@@ -774,19 +774,7 @@ describe('student overview', () => {
       });
   });
 });
-const studentSession = async (): Promise<string> => {
-  const res = await request(ctx.server)
-    .post('/account/register')
-    .type('form')
-    .send({
-      name: 'Saidul Islam Rajib',
-      email: 'rajib@example.com',
-      password: 'correct-horse',
-    })
-    .expect(200);
-
-  return (res.headers['set-cookie'] as unknown as string[])[0];
-};
+const studentSession = (): Promise<string> => learnerSession(ctx);
 
 const lessonIdsOf = async (jar: string, slug = 'networking') => {
   const page = await request(ctx.server)
@@ -883,17 +871,10 @@ describe('progress on the account', () => {
     const [first] = await lessonIdsOf(mine);
     await markLesson(mine, first, true);
 
-    const otherRes = await request(ctx.server)
-      .post('/account/register')
-      .type('form')
-      .send({
-        name: 'Someone Else',
-        email: 'other@example.com',
-        password: 'correct-horse',
-      })
-      .expect(200);
-
-    const theirs = (otherRes.headers['set-cookie'] as unknown as string[])[0];
+    const theirs = await learnerSession(ctx, {
+      name: 'Someone Else',
+      email: 'other@example.com',
+    });
 
     await request(ctx.server)
       .get('/tutorials/networking')
@@ -1100,17 +1081,10 @@ describe('certificate', () => {
       .send({ holder: 'Rajib' })
       .expect(200);
 
-    const otherRes = await request(ctx.server)
-      .post('/account/register')
-      .type('form')
-      .send({
-        name: 'Someone Else',
-        email: 'other@example.com',
-        password: 'correct-horse',
-      })
-      .expect(200);
-
-    const theirs = (otherRes.headers['set-cookie'] as unknown as string[])[0];
+    const theirs = await learnerSession(ctx, {
+      name: 'Someone Else',
+      email: 'other@example.com',
+    });
     await finishCourse(theirs);
 
     const second = await request(ctx.server)

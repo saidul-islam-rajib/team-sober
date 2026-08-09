@@ -33,8 +33,7 @@ import {
 import sharp from 'sharp';
 import { certificateSvg } from './certificate.svg';
 import { CertificatesService } from './certificates.service';
-import { AccountsService } from '../accounts/accounts.service';
-import { AccountSessionService } from '../accounts/account-session.service';
+import { CurrentAccountService } from '../accounts/current-account.service';
 import { AccountRoutes, accountUrl } from '../accounts/account.routes';
 import type { Account } from '../accounts/account.model';
 import { Subject, SubjectStats, requiresEnrolment } from './tutorial.model';
@@ -50,16 +49,11 @@ export class TutorialsController {
     private readonly enrolment: EnrolmentService,
     private readonly certificates: CertificatesService,
     private readonly progress: ProgressService,
-    private readonly accounts: AccountsService,
-    private readonly session: AccountSessionService,
+    private readonly current: CurrentAccountService,
   ) {}
 
   private currentAccount(req: Request): Account | undefined {
-    const cookies = (req.cookies ?? {}) as Record<string, string>;
-
-    return this.accounts.findById(
-      this.session.read(cookies[AccountSessionService.COOKIE]),
-    );
+    return this.current.resolve(req);
   }
 
   private signInFirst(res: Response, slug: string): void {

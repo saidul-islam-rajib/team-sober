@@ -24,7 +24,10 @@ import { CertificatesService } from './tutorials/certificates.service';
 import { ProgressService } from './tutorials/progress.service';
 import { AccountsService } from './accounts/accounts.service';
 import { AccountSessionService } from './accounts/account-session.service';
+import { CurrentAccountService } from './accounts/current-account.service';
+import { PasswordTokenService } from './accounts/password-token.service';
 import { AccountResetService } from './accounts/account-reset.service';
+import { MailerService } from './shared/mail/mailer.service';
 import { AccountRecoveryRequestService } from './accounts/account-recovery-request.service';
 import { AccountAssetsBootstrap } from './accounts/account.assets.bootstrap';
 import { AccountsController } from './accounts/accounts.controller';
@@ -62,7 +65,10 @@ import { LoginThrottleService } from './auth/login-throttle.service';
     ProgressService,
     AccountsService,
     AccountSessionService,
+    CurrentAccountService,
+    PasswordTokenService,
     AccountResetService,
+    MailerService,
     AccountRecoveryRequestService,
     AccountAssetsBootstrap,
     AuthService,

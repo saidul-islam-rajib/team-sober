@@ -117,11 +117,11 @@ export class AccountsAdminController {
   @Post(':id/reset')
   @HttpCode(200)
   @Header('Content-Type', 'text/html')
-  issue(
+  async issue(
     @Param('id') id: string,
     @Body() body: IssueResetInput,
     @Res() res: Response,
-  ): void {
+  ): Promise<void> {
     const account = this.accounts.findById(id);
 
     if (!account) {
@@ -140,7 +140,7 @@ export class AccountsAdminController {
       return;
     }
 
-    const code = this.resets.issue(account.id, note);
+    const code = await this.resets.issue(account.id, note);
 
     res.send(
       this.detail(account, { issued: { code, url: this.resetLink(code) } }),

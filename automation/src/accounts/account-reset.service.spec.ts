@@ -31,70 +31,73 @@ describe('AccountResetService', () => {
     expect(service.history('account-1')).toEqual([]);
   });
 
-  it('hands out a code of the same shape as a recovery code', () => {
-    const code = issue();
+  it('hands out a code of the same shape as a recovery code', async () => {
+    const code = await issue();
 
     expect(code).toHaveLength(RECOVERY_CODE_LENGTH);
     expect(code).toMatch(/^[A-Z0-9]+$/);
   });
 
-  it('never stores the code itself', () => {
-    const code = issue();
+  it('never stores the code itself', async () => {
+    const code = await issue();
     const [stored] = service.history('account-1');
 
     expect(stored.secret).not.toContain(code);
-    expect(stored.secret).toContain(':');
+    expect(stored.secret).toMatch(/^scrypt\$/);
   });
 
-  it('keeps why it was issued, so there is a record', () => {
-    issue();
+  it('keeps why it was issued, so there is a record', async () => {
+    await issue();
 
     expect(service.history('account-1')[0].note).toBe(
       'Replied from the address',
     );
   });
 
-  it('spends the code once and refuses it afterwards', () => {
-    const code = issue();
+  it('spends the code once and refuses it afterwards', async () => {
+    const code = await issue();
 
-    expect(service.consume('account-1', code)).toBe(true);
-    expect(service.consume('account-1', code)).toBe(false);
+    expect(await service.consume('account-1', code)).toBe(true);
+    expect(await service.consume('account-1', code)).toBe(false);
   });
 
-  it('accepts the code however it is punctuated or cased', () => {
-    const code = issue();
+  it('accepts the code however it is punctuated or cased', async () => {
+    const code = await issue();
 
     expect(
-      service.consume('account-1', formatRecoveryCode(code).toLowerCase()),
+      await service.consume(
+        'account-1',
+        formatRecoveryCode(code).toLowerCase(),
+      ),
     ).toBe(true);
   });
 
-  it('refuses a wrong code and leaves the reset usable', () => {
-    const code = issue();
+  it('refuses a wrong code and leaves the reset usable', async () => {
+    const code = await issue();
 
-    expect(service.consume('account-1', 'W'.repeat(RECOVERY_CODE_LENGTH))).toBe(
-      false,
-    );
-    expect(service.consume('account-1', code)).toBe(true);
+    expect(
+      await service.consume('account-1', 'W'.repeat(RECOVERY_CODE_LENGTH)),
+    ).toBe(false);
+    expect(await service.consume('account-1', code)).toBe(true);
   });
 
-  it('will not open an account the code was not cut for', () => {
-    const code = issue();
+  it('will not open an account the code was not cut for', async () => {
+    const code = await issue();
 
-    expect(service.consume('account-2', code)).toBe(false);
-    expect(service.consume('account-1', code)).toBe(true);
+    expect(await service.consume('account-2', code)).toBe(false);
+    expect(await service.consume('account-1', code)).toBe(true);
   });
 
-  it('refuses a code that has expired', () => {
-    const code = issue();
+  it('refuses a code that has expired', async () => {
+    const code = await issue();
 
-    expect(service.consume('account-1', code, Date.now() + AFTER_EXPIRY)).toBe(
-      false,
-    );
+    expect(
+      await service.consume('account-1', code, Date.now() + AFTER_EXPIRY),
+    ).toBe(false);
   });
 
-  it('reports an expired code as expired rather than live', () => {
-    issue();
+  it('reports an expired code as expired rather than live', async () => {
+    await issue();
 
     const [reset] = service.history('account-1');
 
@@ -104,17 +107,17 @@ describe('AccountResetService', () => {
     );
   });
 
-  it('cancels the previous code when another is issued', () => {
-    const first = issue();
-    const second = issue();
+  it('cancels the previous code when another is issued', async () => {
+    const first = await issue();
+    const second = await issue();
 
-    expect(service.consume('account-1', first)).toBe(false);
-    expect(service.consume('account-1', second)).toBe(true);
+    expect(await service.consume('account-1', first)).toBe(false);
+    expect(await service.consume('account-1', second)).toBe(true);
   });
 
-  it('leaves only one code waiting at a time', () => {
-    issue();
-    issue();
+  it('leaves only one code waiting at a time', async () => {
+    await issue();
+    await issue();
 
     expect(service.history('account-1')).toHaveLength(2);
     expect(service.live('account-1')).toBeDefined();
@@ -125,39 +128,42 @@ describe('AccountResetService', () => {
     ).toHaveLength(1);
   });
 
-  it('revokes an outstanding code on request', () => {
-    const code = issue();
+  it('revokes an outstanding code on request', async () => {
+    const code = await issue();
 
     expect(service.revoke('account-1')).toBe(true);
-    expect(service.consume('account-1', code)).toBe(false);
+    expect(await service.consume('account-1', code)).toBe(false);
     expect(resetState(service.history('account-1')[0])).toBe(
       ResetState.Revoked,
     );
   });
 
-  it('has nothing to revoke once a code is spent', () => {
-    service.consume('account-1', issue());
+  it('has nothing to revoke once a code is spent', async () => {
+    await service.consume('account-1', await issue());
 
     expect(service.revoke('account-1')).toBe(false);
   });
 
-  it('records that a spent code was used', () => {
-    service.consume('account-1', issue());
+  it('records that a spent code was used', async () => {
+    await service.consume('account-1', await issue());
 
     expect(resetState(service.history('account-1')[0])).toBe(ResetState.Used);
   });
 
-  it('lists the accounts with a code still waiting', () => {
-    issue();
-    service.issue('account-2', 'Known in person');
-    service.consume('account-2', service.issue('account-2', 'Second try'));
+  it('lists the accounts with a code still waiting', async () => {
+    await issue();
+    await service.issue('account-2', 'Known in person');
+    await service.consume(
+      'account-2',
+      await service.issue('account-2', 'Second try'),
+    );
 
     expect([...service.liveAccountIds()]).toEqual(['account-1']);
   });
 
-  it('keeps the history newest first', () => {
-    issue();
-    service.issue('account-1', 'Second');
+  it('keeps the history newest first', async () => {
+    await issue();
+    await service.issue('account-1', 'Second');
 
     const [newest, oldest] = service.history('account-1');
 
@@ -165,9 +171,9 @@ describe('AccountResetService', () => {
     expect(oldest.note).toBe('Replied from the address');
   });
 
-  it('caps the history rather than growing without end', () => {
+  it('caps the history rather than growing without end', async () => {
     for (let i = 0; i < 14; i += 1) {
-      service.issue('account-1', `Attempt ${i}`);
+      await service.issue('account-1', `Attempt ${i}`);
     }
 
     const kept = service.history('account-1');
@@ -176,9 +182,11 @@ describe('AccountResetService', () => {
     expect(kept[0].note).toBe('Attempt 13');
   });
 
-  it('survives a restart', () => {
-    const code = issue();
+  it('survives a restart', async () => {
+    const code = await issue();
 
-    expect(new AccountResetService().consume('account-1', code)).toBe(true);
+    expect(await new AccountResetService().consume('account-1', code)).toBe(
+      true,
+    );
   });
 });

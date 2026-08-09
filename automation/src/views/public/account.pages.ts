@@ -6,15 +6,19 @@ import {
   MAX_COURSE_LENGTH,
   MAX_EMAIL_LENGTH,
   MAX_NAME_LENGTH,
+  MAX_PASSWORD_LENGTH,
   MAX_REQUEST_NOTE_LENGTH,
   REGISTRATION_STEPS,
-  formatDay,
-  formatRecoveryCode,
+  TokenPurpose,
   recoveryCodeShape,
 } from '../../accounts/account.model';
 import { AccountRoutes, accountUrl } from '../../accounts/account.routes';
 import { ACCOUNT_BUNDLE } from '../../accounts/account.assets';
-import { RecoveryPolicy, SupportPolicy } from '../../shared/config/policies';
+import {
+  AccountPolicy,
+  RecoveryPolicy,
+  SupportPolicy,
+} from '../../shared/config/policies';
 import { css, js } from '../../shared/assets/asset.store';
 import { UI_BUNDLE } from '../../shared/assets/assets.bootstrap';
 import {
@@ -59,6 +63,35 @@ function nextField(next?: string): SafeHtml {
 
 function withNext(path: string, next?: string): string {
   return accountUrl(path, { next });
+}
+
+function passwordField(label: string): SafeHtml {
+  return field({
+    name: 'password',
+    label,
+    type: 'password',
+    required: true,
+    autocomplete: 'new-password',
+    placeholder: `At least ${RecoveryPolicy.minPasswordLength} characters`,
+    attrs: {
+      minlength: RecoveryPolicy.minPasswordLength,
+      maxlength: MAX_PASSWORD_LENGTH,
+    },
+  });
+}
+
+function emailField(value?: string, hint?: string): SafeHtml {
+  return field({
+    name: 'email',
+    label: 'Email',
+    type: 'email',
+    required: true,
+    autocomplete: 'email',
+    value,
+    placeholder: 'you@example.com',
+    hint,
+    attrs: { maxlength: MAX_EMAIL_LENGTH },
+  });
 }
 
 function benefitPanel(benefits: AccountBenefit[]): Panel {
@@ -123,8 +156,9 @@ export function registerPage(state: FormState = {}): string {
     <p class="account-eyebrow">Free account</p>
     <h1>Create an account</h1>
     <p class="account-lede">
-      It takes one form and no email confirmation. Your progress and your
-      certificates are then tied to you rather than to this browser.
+      Give us a name and an address and we will email you a link to choose a
+      password. Your progress and your certificates are then tied to you rather
+      than to this browser.
     </p>
 
     ${when(state.error, () => banner({ kind: 'error', message: state.error }))}
@@ -140,27 +174,8 @@ export function registerPage(state: FormState = {}): string {
         placeholder: 'The name on your certificates',
         attrs: { maxlength: MAX_NAME_LENGTH },
       })}
-      ${field({
-        name: 'email',
-        label: 'Email',
-        type: 'email',
-        required: true,
-        autocomplete: 'email',
-        value: state.email,
-        placeholder: 'you@example.com',
-        hint: 'Used to sign in. Nothing is ever sent to it.',
-        attrs: { maxlength: MAX_EMAIL_LENGTH },
-      })}
-      ${field({
-        name: 'password',
-        label: 'Password',
-        type: 'password',
-        required: true,
-        autocomplete: 'new-password',
-        placeholder: `At least ${RecoveryPolicy.minPasswordLength} characters`,
-        attrs: { minlength: RecoveryPolicy.minPasswordLength },
-      })}
-      ${submitButton({ label: 'Create account' })}
+      ${emailField(state.email, 'Used to sign in, and to send your password link.')}
+      ${submitButton({ label: 'Email me a link' })}
     </form>
 
     <p class="account-alt">
@@ -178,6 +193,77 @@ export function registerPage(state: FormState = {}): string {
   );
 }
 
+export interface CheckEmailState {
+  email: string;
+  /** Set when SMTP is off and we are not in production, so the link is shown. */
+  devLink?: string;
+  failed?: boolean;
+  reset?: boolean;
+}
+
+/**
+ * Shown after registering and after asking for a reset. Deliberately identical
+ * whether or not the address turned out to have an account — anything else
+ * tells a stranger who is registered here.
+ */
+export function checkEmailPage({
+  email,
+  devLink,
+  failed,
+  reset,
+}: CheckEmailState): string {
+  const minutes = AccountPolicy.passwordLinkMinutes;
+
+  const main = html`<div class="account-main">
+    <p class="account-eyebrow">${reset ? 'Password reset' : 'Almost there'}</p>
+    <h1>Check your email</h1>
+
+    ${when(failed, () =>
+      banner({
+        kind: 'error',
+        message:
+          'We could not send the email just now. Try again in a few minutes, ' +
+          'and if it keeps failing let the owner know.',
+      }),
+    )}
+
+    <p class="account-lede">
+      If <b>${email}</b> has an account, a link to
+      ${reset ? 'choose a new password' : 'set your password'} is on its way. It
+      works once and expires in ${minutes} minutes.
+    </p>
+
+    <p class="account-empty">
+      Nothing after a minute or two? Check the spam folder, and make sure the
+      address above is the one you meant.
+    </p>
+
+    ${when(
+      devLink,
+      () =>
+        html`<div class="recovery-panel">
+        <p>
+          <b>Development mode.</b> No SMTP server is configured, so nothing was
+          actually sent. Use this link:
+        </p>
+        ${codeBlock({
+          id: 'setup-link',
+          value: devLink,
+          copyLabel: 'Copy link',
+        })}
+      </div>`,
+    )}
+
+    ${linkButton({
+      href: AccountRoutes.signIn.template,
+      label: 'Back to sign in',
+      variant: 'ghost',
+    })}
+  </div>`;
+
+  return page('Check your email', shell(main), AccountRoutes.register.template);
+}
+
 export function signInPage(state: FormState = {}): string {
   const main = html`<div class="account-main">
     <p class="account-eyebrow">Welcome back</p>
@@ -189,17 +275,7 @@ export function signInPage(state: FormState = {}): string {
     ${when(state.error, () => banner({ kind: 'error', message: state.error }))}
 
     <form method="post" action="${AccountRoutes.signIn.template}">
-      ${nextField(state.next)}
-      ${field({
-        name: 'email',
-        label: 'Email',
-        type: 'email',
-        required: true,
-        autocomplete: 'email',
-        value: state.email,
-        placeholder: 'you@example.com',
-        attrs: { maxlength: MAX_EMAIL_LENGTH },
-      })}
+      ${nextField(state.next)} ${emailField(state.email)}
       ${field({
         name: 'password',
         label: 'Password',
@@ -207,6 +283,7 @@ export function signInPage(state: FormState = {}): string {
         required: true,
         autocomplete: 'current-password',
         placeholder: 'Your password',
+        attrs: { maxlength: MAX_PASSWORD_LENGTH },
       })}
       ${submitButton({ label: 'Sign in' })}
     </form>
@@ -219,7 +296,7 @@ export function signInPage(state: FormState = {}): string {
         >
       </span>
       <a href="${withNext(AccountRoutes.recover.template, state.next)}"
-        >Lost your password?</a
+        >Forgotten your password?</a
       >
     </p>
   </div>`;
@@ -231,11 +308,73 @@ export function signInPage(state: FormState = {}): string {
   );
 }
 
+export interface SetPasswordState {
+  token?: string;
+  name?: string;
+  purpose?: TokenPurpose;
+  error?: string;
+  /** False once the link itself is spent, expired or unrecognised. */
+  valid: boolean;
+  next?: string;
+}
+
+export function setPasswordPage(state: SetPasswordState): string {
+  const resetting = state.purpose === TokenPurpose.Reset;
+
+  if (!state.valid) {
+    const main = html`<div class="account-main">
+      <p class="account-eyebrow">Password link</p>
+      <h1>That link will not work</h1>
+      ${banner({ kind: 'error', message: state.error })}
+      <p class="account-lede">
+        Links can only be used once, and expire after
+        ${AccountPolicy.passwordLinkMinutes} minutes. Ask for a fresh one and it
+        will replace anything outstanding.
+      </p>
+      ${linkButton({
+        href: AccountRoutes.recover.template,
+        label: 'Send me a new link',
+      })}
+    </div>`;
+
+    return page(
+      'That link will not work',
+      shell(main),
+      AccountRoutes.setPassword.template,
+    );
+  }
+
+  const main = html`<div class="account-main">
+    <p class="account-eyebrow">${resetting ? 'Password reset' : 'One last step'}</p>
+    <h1>${resetting ? 'Choose a new password' : 'Choose your password'}</h1>
+    <p class="account-lede">
+      ${state.name ? `Hello ${state.name}. ` : ''}Pick something you do not use
+      anywhere else. You will be signed in as soon as it is saved.
+    </p>
+
+    ${when(state.error, () => banner({ kind: 'error', message: state.error }))}
+
+    <form method="post" action="${AccountRoutes.setPassword.template}">
+      ${nextField(state.next)}
+      <input type="hidden" name="token" value="${state.token}" />
+      ${passwordField('Password')}
+      ${submitButton({ label: 'Save it and sign me in' })}
+    </form>
+  </div>`;
+
+  return page(
+    resetting ? 'Choose a new password' : 'Choose your password',
+    shell(main, stepPanel(REGISTRATION_STEPS)),
+    AccountRoutes.setPassword.template,
+  );
+}
+
 export interface AccountPageState {
   account: AccountView;
   certificates: { course: string; href: string; issued: string }[];
   courses?: { title: string; href: string; done: number; total: number }[];
-  recoveryIssuedAt?: string;
+  hasPassword?: boolean;
+  linkSent?: boolean;
   error?: string;
 }
 
@@ -243,11 +382,10 @@ export function accountPage({
   account,
   certificates,
   courses = [],
-  recoveryIssuedAt,
+  hasPassword = true,
+  linkSent,
   error,
 }: AccountPageState): string {
-  const issued = formatDay(recoveryIssuedAt);
-
   const certRows = certificates.map(
     (certificate) =>
       html`<a class="account-cert" href="${certificate.href}">
@@ -301,26 +439,29 @@ export function accountPage({
           </p>`
     }
 
-    <h2 class="account-section" id="recovery">Recovery code</h2>
+    <h2 class="account-section" id="password">Password</h2>
     ${when(error, () => banner({ kind: 'error', message: error }))}
+    ${when(linkSent, () =>
+      banner({
+        kind: 'ok',
+        message: `A link is on its way to ${account.email}. It works once and expires in ${AccountPolicy.passwordLinkMinutes} minutes.`,
+      }),
+    )}
 
     <div class="recovery-panel">
       <p>
-        ${issued ? `Your current code was issued on ${issued}.` : 'Your current code was issued when you registered.'}
-        Lost it, or not sure it is still safe? Confirm your password and we will
-        show you a new one. The old code stops working straight away.
+        ${
+          hasPassword
+            ? 'Changing your password signs you out everywhere else. We email you a link rather than asking for the old one, so a borrowed browser is no way in.'
+            : 'You signed in from another Team Sober service, so there is no password on this account yet. Set one and you can sign in here directly too.'
+        }
       </p>
 
-      <form method="post" action="${AccountRoutes.rotateRecovery.template}">
-        ${field({
-          name: 'password',
-          label: 'Your password',
-          type: 'password',
-          required: true,
-          autocomplete: 'current-password',
-          placeholder: 'Your password',
+      <form method="post" action="${AccountRoutes.passwordLink.template}">
+        ${submitButton({
+          label: hasPassword ? 'Email me a password link' : 'Set a password',
+          variant: 'ghost',
         })}
-        ${submitButton({ label: 'Show me a new code', variant: 'ghost' })}
       </form>
     </div>
 
@@ -336,53 +477,7 @@ export function accountPage({
   return page(account.name, shell(main), AccountRoutes.home.template);
 }
 
-export type CodeContext = 'register' | 'recover' | 'rotate';
-
-const CODE_LEDES: Record<CodeContext, string> = {
-  register:
-    'Your account is ready and you are signed in. Before you go, copy this down.',
-  recover:
-    'Your password is changed and you are signed in. This code replaces the one you just spent.',
-  rotate:
-    'Here is your new code. The one you had before it no longer works, so replace it wherever you kept it.',
-};
-
-export function recoveryCodePage(
-  code: string,
-  next?: string,
-  context: CodeContext = 'register',
-): string {
-  const target =
-    next && next.startsWith('/') ? next : AccountRoutes.home.template;
-
-  const main = html`<div class="account-main">
-    <p class="account-eyebrow">One-time code</p>
-    <h1>Save your recovery code</h1>
-    <p class="account-lede">${CODE_LEDES[context]}</p>
-
-    ${codeBlock({ id: 'recovery-code', value: formatRecoveryCode(code), copyLabel: 'Copy code' })}
-
-    <p class="recovery-warn">
-      Store it somewhere safe: with it you can reset your password yourself,
-      without waiting on anybody. It is shown once and cannot be looked up later
-      — not by us either. If you do lose both this and your password,
-      <a href="${AccountRoutes.recover.template}#stuck"
-        >we can still get you back in</a
-      >.
-    </p>
-
-    ${linkButton({ href: target, label: 'I have saved it' })}
-  </div>`;
-
-  return page(
-    'Your recovery code',
-    shell(main),
-    AccountRoutes.register.template,
-  );
-}
-
 export interface RecoverState extends FormState {
-  code?: string;
   course?: string;
   requestNote?: string;
   requestError?: string;
@@ -392,45 +487,17 @@ export interface RecoverState extends FormState {
 export function recoverPage(state: RecoverState = {}): string {
   const main = html`<div class="account-main">
     <p class="account-eyebrow">Account recovery</p>
-    <h1>Reset your password</h1>
+    <h1>Forgotten your password?</h1>
     <p class="account-lede">
-      Enter the recovery code you saved when you registered, and choose a new
-      password. You will be given a fresh code to replace it.
+      Give us the address on your account and we will email a link to choose a
+      new password. Your old one keeps working until you use it.
     </p>
 
     ${when(state.error, () => banner({ kind: 'error', message: state.error }))}
 
     <form method="post" action="${AccountRoutes.recover.template}">
-      ${nextField(state.next)}
-      ${field({
-        name: 'email',
-        label: 'Email',
-        type: 'email',
-        required: true,
-        autocomplete: 'email',
-        value: state.email,
-        placeholder: 'you@example.com',
-        attrs: { maxlength: MAX_EMAIL_LENGTH },
-      })}
-      ${field({
-        name: 'code',
-        label: 'Recovery code',
-        required: true,
-        value: state.code,
-        placeholder: recoveryCodeShape(),
-        hint: 'Dashes and capitals do not matter.',
-        attrs: { autocomplete: 'off', spellcheck: 'false' },
-      })}
-      ${field({
-        name: 'password',
-        label: 'New password',
-        type: 'password',
-        required: true,
-        autocomplete: 'new-password',
-        placeholder: `At least ${RecoveryPolicy.minPasswordLength} characters`,
-        attrs: { minlength: RecoveryPolicy.minPasswordLength },
-      })}
-      ${submitButton({ label: 'Set a new password' })}
+      ${nextField(state.next)} ${emailField(state.email)}
+      ${submitButton({ label: 'Email me a link' })}
     </form>
 
     ${stuckPanel(state)}
@@ -445,7 +512,7 @@ export function recoverPage(state: RecoverState = {}): string {
   </div>`;
 
   return page(
-    'Reset your password',
+    'Forgotten your password?',
     shell(main),
     AccountRoutes.recover.template,
   );
@@ -453,11 +520,10 @@ export function recoverPage(state: RecoverState = {}): string {
 
 function stuckPanel(state: RecoverState): SafeHtml {
   return html`<div class="account-stuck" id="stuck">
-    <b>Lost the code as well?</b>
+    <b>Lost the address as well?</b>
     <p>
-      Nobody can read your code back to you — it is stored the same way your
-      password is. What we can do is issue a one-time reset link that does the
-      same job. Ask the owner directly on
+      A password link is no help if you can no longer read the mailbox it goes
+      to. Ask the owner directly on
       <a href="${SupportPolicy.channelUrl}">${SupportPolicy.channelLabel}</a>,
       or send the request below. Either way it goes to a person, who checks it is
       really you before sending a code that works once and expires after
@@ -516,29 +582,22 @@ function requestForm(state: RecoverState): SafeHtml {
 
 export function resetPage(state: FormState & { code?: string } = {}): string {
   const main = html`<div class="account-main">
-    <p class="account-eyebrow">Reset link</p>
+    <p class="account-eyebrow">Reset code</p>
     <h1>Choose a new password</h1>
     <p class="account-lede">
-      This code was issued for one account and can be used once, within
+      This code was issued by hand for one account and can be used once, within
       ${RecoveryPolicy.resetLinkMinutes} minutes. Set a password and you will be
-      signed in with a fresh recovery code.
+      signed in.
     </p>
 
     ${when(state.error, () => banner({ kind: 'error', message: state.error }))}
 
     <form method="post" action="${AccountRoutes.reset.template}">
       ${nextField(state.next)}
-      ${field({
-        name: 'email',
-        label: 'Email',
-        type: 'email',
-        required: true,
-        autocomplete: 'email',
-        value: state.email,
-        placeholder: 'you@example.com',
-        hint: 'The address on the account the code was issued for.',
-        attrs: { maxlength: MAX_EMAIL_LENGTH },
-      })}
+      ${emailField(
+        state.email,
+        'The address on the account the code was issued for.',
+      )}
       ${field({
         name: 'code',
         label: 'Reset code',
@@ -548,15 +607,7 @@ export function resetPage(state: FormState & { code?: string } = {}): string {
         hint: 'Dashes and capitals do not matter.',
         attrs: { autocomplete: 'off', spellcheck: 'false' },
       })}
-      ${field({
-        name: 'password',
-        label: 'New password',
-        type: 'password',
-        required: true,
-        autocomplete: 'new-password',
-        placeholder: `At least ${RecoveryPolicy.minPasswordLength} characters`,
-        attrs: { minlength: RecoveryPolicy.minPasswordLength },
-      })}
+      ${passwordField('New password')}
       ${submitButton({ label: 'Set a new password' })}
     </form>
 

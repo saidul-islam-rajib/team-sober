@@ -10,7 +10,8 @@ export const AccountRoutes = {
   signOut: route(`${ACCOUNT}/sign-out`),
   recover: route(`${ACCOUNT}/recover`),
   recoverRequest: route(`${ACCOUNT}/recover-request`),
-  rotateRecovery: route(`${ACCOUNT}/recovery`),
+  setPassword: route(`${ACCOUNT}/set-password`),
+  passwordLink: route(`${ACCOUNT}/password-link`),
   reset: route(`${ACCOUNT}/reset`),
 } as const;
 

@@ -1,32 +1,26 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { JsonCollection } from '../shared/persistence/json-collection';
+import { IDENTITY_ISSUER, IdentityClaims } from '../shared/identity/identity';
 import { Account } from './account.model';
-import { CredentialsInput, RecoveryInput, RegisterInput } from './account.dto';
+import { AccountStatus } from './account-status';
+import { CredentialsInput, RegisterInput } from './account.dto';
 import { normaliseEmail, normaliseName } from './account.rules';
-import { normaliseRecoveryCode } from './recovery-code';
-import { newCode, seal, sealMatches } from './secret';
+import { needsRehash, seal, sealMatches } from './secret';
 
 @Injectable()
 export class AccountsService {
+  private readonly logger = new Logger(AccountsService.name);
+
   private readonly store = new JsonCollection<Account>({
     file: 'accounts.json',
     key: 'accounts',
     label: 'account(s)',
   });
 
-  private issueRecoveryCode(account: Account): string {
-    const code = newCode();
-
-    account.recovery = seal(code);
-    account.recoveryIssuedAt = new Date().toISOString();
-    this.store.persist();
-
-    return code;
-  }
-
   findByEmail(email?: string): Account | undefined {
     const wanted = normaliseEmail(email);
+    if (!wanted) return undefined;
 
     return this.store.find((account) => account.email === wanted);
   }
@@ -39,61 +33,112 @@ export class AccountsService {
     return Boolean(this.findByEmail(email));
   }
 
-  register(input: RegisterInput): { account: Account; code: string } {
-    const now = new Date().toISOString();
-    const code = newCode();
+  /** An account can only be signed into once a password has actually been set. */
+  private usable(account: Account): boolean {
+    return Boolean(account.secret) && account.status === AccountStatus.Active;
+  }
 
-    const account = this.store.add({
+  /**
+   * Start a registration and return the account a setup link should be sent to.
+   *
+   * `null` means send nothing: the address already has a working password, and
+   * saying so would confirm to a stranger that it is registered. The caller
+   * shows the same "check your email" either way.
+   */
+  beginRegistration(input: RegisterInput): Account | null {
+    const existing = this.findByEmail(input.email);
+
+    if (existing) {
+      if (this.usable(existing)) return null;
+
+      // Still waiting on a first password — update the name and re-send.
+      existing.name = normaliseName(input.name) || existing.name;
+      existing.updatedAt = new Date().toISOString();
+      this.store.persist();
+
+      return existing;
+    }
+
+    const now = new Date().toISOString();
+
+    return this.store.add({
       id: randomUUID(),
       name: normaliseName(input.name),
       email: normaliseEmail(input.email),
-      secret: seal(input.password ?? ''),
-      recovery: seal(code),
+      secret: '',
+      status: AccountStatus.Unverified,
+      tokenVersion: 0,
       createdAt: now,
-      recoveryIssuedAt: now,
+      updatedAt: now,
+      origin: IDENTITY_ISSUER,
     });
-
-    return { account, code };
   }
 
-  recover(input: RecoveryInput): string {
-    const account = this.findByEmail(input.email);
-    if (!account) return '';
-
-    if (!sealMatches(account.recovery, normaliseRecoveryCode(input.code))) {
-      return '';
-    }
-
-    account.secret = seal(input.password ?? '');
-
-    return this.issueRecoveryCode(account);
-  }
-
-  rotateRecovery(id: string, password?: string): string {
+  /**
+   * Set or replace a password. Bumping the token version retires every session
+   * this app has issued for the account, so a stolen one dies with the reset.
+   */
+  async setPassword(
+    id: string,
+    password: string,
+  ): Promise<Account | undefined> {
     const account = this.findById(id);
-    if (!account) return '';
-
-    return sealMatches(account.secret, password ?? '')
-      ? this.issueRecoveryCode(account)
-      : '';
-  }
-
-  resetPassword(id: string, password: string): string {
-    const account = this.findById(id);
-    if (!account) return '';
-
-    account.secret = seal(password);
-
-    return this.issueRecoveryCode(account);
-  }
-
-  authenticate(input: CredentialsInput): Account | undefined {
-    const account = this.findByEmail(input.email);
     if (!account) return undefined;
 
-    return sealMatches(account.secret, input.password ?? '')
-      ? account
-      : undefined;
+    account.secret = await seal(password);
+    account.status = AccountStatus.Active;
+    account.tokenVersion = (account.tokenVersion ?? 0) + 1;
+    account.updatedAt = new Date().toISOString();
+    this.store.persist();
+
+    return account;
+  }
+
+  async authenticate(input: CredentialsInput): Promise<Account | undefined> {
+    const account = this.findByEmail(input.email);
+    const password = input.password ?? '';
+
+    if (!account || !this.usable(account)) return undefined;
+    if (!(await sealMatches(account.secret, password))) return undefined;
+
+    // The plaintext is in hand exactly here, so this is the one chance to
+    // bring an older hash up to the current cost without asking anybody.
+    if (needsRehash(account.secret)) {
+      account.secret = await seal(password);
+      this.store.persist();
+    }
+
+    return account;
+  }
+
+  /**
+   * Adopt somebody who signed in on one of the sibling applications.
+   *
+   * Their address is already proven — the session carrying it is signed with
+   * the secret only our own apps hold — so the local record is created active,
+   * just without a local password. Setting one is a "forgot password" away.
+   */
+  provisionFromIdentity(claims: IdentityClaims): Account {
+    const existing = this.findByEmail(claims.email);
+    if (existing) return existing;
+
+    const now = new Date().toISOString();
+
+    this.logger.log(
+      `Creating a local account for ${claims.email}, signed in via ${claims.iss}`,
+    );
+
+    return this.store.add({
+      id: randomUUID(),
+      name: normaliseName(claims.name) || claims.email,
+      email: normaliseEmail(claims.email),
+      secret: '',
+      status: AccountStatus.Active,
+      tokenVersion: 0,
+      createdAt: now,
+      updatedAt: now,
+      origin: claims.iss,
+    });
   }
 
   list(query = ''): Account[] {

@@ -165,16 +165,38 @@ restart.
 | Variable | Default | Purpose |
 |---|---|---|
 | `ADMIN_PASSWORD` | — | Admin sign-in password. **Unset disables admin sign-in.** |
-| `SESSION_SECRET` | random per boot | HMAC key for session cookies. Unset means every restart signs you out. |
+| `AUTH_SECRET` | development key | HMAC key for learner session cookies. Must be **32+ characters**, and **identical across every Team Sober app** — that is what makes single sign-on work. |
+| `SESSION_SECRET` | random per boot | Legacy name for the same thing, still read when `AUTH_SECRET` is unset. Prefer `AUTH_SECRET`. |
+| `SSO_COOKIE_DOMAIN` | unset | Set to `.team-sober.com` in production so the session cookie is visible to every subdomain. Leave unset locally. |
 | `DATA_DIR` | `./data` | Where JSON data and uploads are written. Point elsewhere for a throwaway run. |
 | `PORT` | `3000` | Port the app listens on. |
 | `TRUST_PROXY` | unset | Set to `1` only when behind a reverse proxy (see [README → Security](README.md#security)). |
+
+### Email
+
+Registration emails a link to set a password, so without SMTP nobody can
+finish signing up. The variable names match the Bachelor Point project, so one
+block of `.env` configures either.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SMTP_HOST` | — | Unset keeps the mailer in preview mode: nothing is sent, and the link is logged instead. |
+| `SMTP_PORT` | `587` | `465` is treated as implicit TLS; anything else negotiates STARTTLS. |
+| `SMTP_USER` | — | Unset skips authentication entirely. |
+| `SMTP_PASSWORD` | — | For Gmail this is a 16-character app password, not the account password. |
+| `SMTP_FROM` | — | e.g. `Team Sober <admin@team-sober.com>`. Required, along with `SMTP_HOST`, before anything is sent. |
+| `SMTP_TIMEOUT_MS` | `15000` | How long to wait on the conversation before giving up. |
+
+**In development you do not need SMTP.** With no `SMTP_HOST` set and
+`NODE_ENV` not `production`, the "check your email" page prints the link
+directly, so the whole sign-up flow is walkable offline. That shortcut is
+switched off in production.
 
 A clean-slate local run, writing to a temporary data folder on a spare port:
 
 ```powershell
 $env:ADMIN_PASSWORD = "dev-password"
-$env:SESSION_SECRET = "dev-secret"
+$env:AUTH_SECRET = "a-local-development-secret-of-at-least-32-chars"
 $env:PORT = "3001"
 $env:DATA_DIR = "$env:TEMP\blog-dev-data"
 npm run start
@@ -185,6 +207,49 @@ uploads, settings and platform configuration).
 
 ---
 
+## Single sign-on across the Team Sober apps
+
+Every Team Sober application is served from a subdomain of `team-sober.com`
+and signs its session cookie with the same `AUTH_SECRET`. A cookie set on the
+parent domain is therefore readable by all of them, and each can verify a
+session another one issued. There are no redirects and no authorisation codes,
+and one app being down never stops another signing somebody in.
+
+```
+                cookie ts_identity, Domain=.team-sober.com
+                signed HMAC-SHA256 with the shared AUTH_SECRET
+
+   team-sober.com  ──┐                    ┌──  mess.team-sober.com
+                     ├── both read it ────┤
+   sign in on one ───┘                    └───  already signed in on the other
+```
+
+The cookie carries `{ sub, email, name, iss, sv, iat, exp }`:
+
+- **`sub`** is derived from the address (`sha256(namespace:email)`), so the
+  same person has the same identifier in every app without the apps ever
+  needing to agree on one, or share a database.
+- **`iss`** says which app minted it.
+- **`sv`** is the *issuer's* token version. Only the issuer holds the record it
+  counts against, so a consumer ignores it. That is why a password change
+  signs you out of the app you changed it in, but not the others.
+
+When this app sees a valid session it did not issue, it creates a local
+account for that address on the spot — active, but with no local password.
+The learner can set one from their account page whenever they want to sign in
+here directly.
+
+Two things to get right in production:
+
+1. `AUTH_SECRET` must be **byte-identical** in every app. Rotate them together
+   or everybody is signed out.
+2. `SSO_COOKIE_DOMAIN` must be `.team-sober.com`, with a leading dot.
+
+Locally, leave `SSO_COOKIE_DOMAIN` unset. The cookie is then host-only, so a
+session on `localhost:3000` does not leak to another app on `localhost:3001`.
+
+---
+
 ## Learner accounts vs the admin password
 
 Two separate things — do not confuse them:
@@ -192,11 +257,14 @@ Two separate things — do not confuse them:
 - **Admin password** (`/login`) — the single site-owner login, controlled by the
   `ADMIN_PASSWORD` environment variable. No self-service recovery; you change it
   by changing the variable.
-- **Learner accounts** (`/account`) — visitors register with an email and
-  password and receive a recovery code. They can reset their own password with
-  the code, swap a lost code from their account page, and — if they lose both —
-  the owner can issue a one-time reset from **Admin → Accounts**
-  (`/admin/accounts`). Operational limits for all of this live under
+- **Learner accounts** (`/account`) — visitors register with a name and an
+  email address only. A one-time link is emailed to them; following it is both
+  how they choose a password and how the address is proved, so an account
+  cannot be signed into until the link is used. "Forgotten your password"
+  emails the same kind of link. If a learner can no longer read the mailbox on
+  their account, the owner can issue a one-time reset code by hand from
+  **Admin → Accounts** (`/admin/accounts`) — that is the only remaining
+  recovery-code path. Operational limits live under
   **Admin → Settings → Platform configuration**.
 
 See [README → Learner accounts and recovery](README.md#learner-accounts-and-recovery)

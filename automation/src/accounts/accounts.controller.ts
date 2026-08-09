@@ -14,48 +14,63 @@ import { AccountsService } from './accounts.service';
 import { AccountSessionService } from './account-session.service';
 import { AccountResetService } from './account-reset.service';
 import { AccountRecoveryRequestService } from './account-recovery-request.service';
+import { CurrentAccountService } from './current-account.service';
+import { PasswordTokenService } from './password-token.service';
+import { TokenPurpose } from './password-token.model';
 import { AccountRoutes } from './account.routes';
 import { Account } from './account.model';
 import type {
+  ForgotInput,
   NextTarget,
   RecoveryInput,
   RecoveryRequestInput,
   RegisterInput,
-  RotateInput,
+  SetPasswordInput,
 } from './account.dto';
 import { describeAccount } from './account.dto';
 import {
+  forgotProblem,
   normaliseEmail,
-  recoveryProblem,
   recoveryRequestProblem,
   registrationProblem,
   resetProblem,
-  rotationProblem,
+  setPasswordProblem,
 } from './account.rules';
 import {
   accountPage,
+  checkEmailPage,
   recoverPage,
-  recoveryCodePage,
   registerPage,
   resetPage,
+  setPasswordPage,
   signInPage,
 } from '../views/public/account.pages';
 import { CertificatesService } from '../tutorials/certificates.service';
 import { LoginThrottleService } from '../auth/login-throttle.service';
 import { TutorialsService } from '../tutorials/tutorials.service';
 import { ProgressService } from '../tutorials/progress.service';
+import { MailerService } from '../shared/mail/mailer.service';
+import {
+  passwordResetEmail,
+  passwordSetupEmail,
+} from '../shared/mail/mail.templates';
+import { AccountPolicy } from '../shared/config/policies';
+import { getSettings } from '../settings/settings.store';
 
 @Controller('account')
 export class AccountsController {
   constructor(
     private readonly accounts: AccountsService,
     private readonly session: AccountSessionService,
+    private readonly current: CurrentAccountService,
+    private readonly tokens: PasswordTokenService,
     private readonly resets: AccountResetService,
     private readonly requests: AccountRecoveryRequestService,
     private readonly certificates: CertificatesService,
     private readonly tutorials: TutorialsService,
     private readonly progress: ProgressService,
     private readonly throttle: LoginThrottleService,
+    private readonly mailer: MailerService,
   ) {}
 
   private clientIp(req: Request): string {
@@ -66,14 +81,12 @@ export class AccountsController {
     return `account:${this.clientIp(req)}`;
   }
 
-  private requestKey(req: Request): string {
-    return `recovery-request:${this.clientIp(req)}`;
+  private linkKey(req: Request): string {
+    return `password-link:${this.clientIp(req)}`;
   }
 
-  private currentId(req: Request): string {
-    const cookies = (req.cookies ?? {}) as Record<string, string>;
-
-    return this.session.read(cookies[AccountSessionService.COOKIE]);
+  private requestKey(req: Request): string {
+    return `recovery-request:${this.clientIp(req)}`;
   }
 
   private safeNext(next?: string): string {
@@ -82,16 +95,80 @@ export class AccountsController {
       : AccountRoutes.home.template;
   }
 
-  private startSession(res: Response, accountId: string): void {
-    res.cookie(AccountSessionService.COOKIE, this.session.issue(accountId), {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: res.req.secure,
-      maxAge: this.session.cookieMaxAge,
-    });
+  private waitMessage(waitMs: number): string {
+    const minutes = Math.max(1, Math.ceil(waitMs / 60000));
+
+    return `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`;
   }
 
-  private homePage(account: Account, error?: string): string {
+  /**
+   * Absolute base for emailed links. The configured site URL wins, because a
+   * `Host` header is attacker-controlled and this ends up in an email.
+   */
+  private baseUrl(req: Request): string {
+    const configured = (getSettings().siteUrl || '').replace(/\/+$/, '');
+    if (configured) return configured;
+
+    const forwarded = req.headers['x-forwarded-proto'];
+    const proto =
+      (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0] ??
+      req.protocol ??
+      'http';
+
+    return `${proto}://${req.headers.host ?? 'localhost'}`;
+  }
+
+  private passwordLink(req: Request, token: string, next?: string): string {
+    const base = `${this.baseUrl(req)}${AccountRoutes.setPassword.template}?token=${token}`;
+
+    // Carried through the email so "sign in to claim your certificate" still
+    // lands where it was going. Re-checked as relative when it comes back.
+    return next && next.startsWith('/') && !next.startsWith('//')
+      ? `${base}&next=${encodeURIComponent(next)}`
+      : base;
+  }
+
+  /**
+   * Issue a link and email it. Returns the link only when there is no SMTP
+   * server and we are not in production, so a developer is not locked out of
+   * their own sign-up flow.
+   */
+  private async sendPasswordLink(
+    req: Request,
+    account: Account,
+    purpose: TokenPurpose,
+    next?: string,
+  ): Promise<{ failed: boolean; devLink?: string }> {
+    const { token } = this.tokens.issue(
+      account.id,
+      purpose,
+      this.clientIp(req),
+    );
+
+    const link = this.passwordLink(req, token, next);
+    const minutes = AccountPolicy.passwordLinkMinutes;
+
+    const build =
+      purpose === TokenPurpose.Reset ? passwordResetEmail : passwordSetupEmail;
+
+    const delivery = await this.mailer.send({
+      ...build({ name: account.name, link, minutes }),
+      to: account.email,
+    });
+
+    const showLink =
+      !this.mailer.configured && process.env.NODE_ENV !== 'production';
+
+    return {
+      failed: !delivery.ok,
+      ...(showLink ? { devLink: link } : {}),
+    };
+  }
+
+  private homePage(
+    account: Account,
+    extra: { error?: string; linkSent?: boolean } = {},
+  ): string {
     const certificates = this.certificates
       .forAccount(account.id)
       .flatMap((record) => {
@@ -136,15 +213,15 @@ export class AccountsController {
       account: describeAccount(account),
       certificates,
       courses,
-      recoveryIssuedAt: account.recoveryIssuedAt,
-      error,
+      hasPassword: Boolean(account.secret),
+      ...extra,
     });
   }
 
   @Get()
   @Header('Content-Type', 'text/html')
   home(@Req() req: Request, @Res() res: Response): void {
-    const account = this.accounts.findById(this.currentId(req));
+    const account = this.current.resolve(req);
 
     if (!account) {
       res.redirect(AccountRoutes.signIn.template);
@@ -163,10 +240,11 @@ export class AccountsController {
   @Post('register')
   @HttpCode(200)
   @Header('Content-Type', 'text/html')
-  register(
+  async register(
     @Body() body: RegisterInput & NextTarget,
+    @Req() req: Request,
     @Res() res: Response,
-  ): void {
+  ): Promise<void> {
     const problem = registrationProblem(body);
 
     if (problem) {
@@ -181,10 +259,13 @@ export class AccountsController {
       return;
     }
 
-    if (this.accounts.taken(body.email)) {
+    const key = this.linkKey(req);
+    const waitMs = this.throttle.retryAfter(key);
+
+    if (waitMs > 0) {
       res.send(
         registerPage({
-          error: 'That email already has an account. Sign in instead.',
+          error: this.waitMessage(waitMs),
           name: body.name,
           email: body.email,
           next: body.next,
@@ -193,10 +274,18 @@ export class AccountsController {
       return;
     }
 
-    const { account, code } = this.accounts.register(body);
+    this.throttle.recordFailure(key);
 
-    this.startSession(res, account.id);
-    res.send(recoveryCodePage(code, this.safeNext(body.next), 'register'));
+    const email = normaliseEmail(body.email);
+    const account = this.accounts.beginRegistration(body);
+
+    // A null account means the address already has a working password. Say
+    // exactly what we would have said anyway, and send nothing.
+    const outcome = account
+      ? await this.sendPasswordLink(req, account, TokenPurpose.Setup, body.next)
+      : { failed: false };
+
+    res.send(checkEmailPage({ email, ...outcome }));
   }
 
   @Get('sign-in')
@@ -208,20 +297,18 @@ export class AccountsController {
   @Post('sign-in')
   @HttpCode(200)
   @Header('Content-Type', 'text/html')
-  signIn(
+  async signIn(
     @Body() body: { email?: string; password?: string; next?: string },
     @Req() req: Request,
     @Res() res: Response,
-  ): void {
+  ): Promise<void> {
     const key = this.throttleKey(req);
     const waitMs = this.throttle.retryAfter(key);
 
     if (waitMs > 0) {
-      const minutes = Math.max(1, Math.ceil(waitMs / 60000));
-
       res.send(
         signInPage({
-          error: `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+          error: this.waitMessage(waitMs),
           email: normaliseEmail(body.email),
           next: body.next,
         }),
@@ -229,7 +316,7 @@ export class AccountsController {
       return;
     }
 
-    const account = this.accounts.authenticate(body);
+    const account = await this.accounts.authenticate(body);
 
     if (!account) {
       this.throttle.recordFailure(key);
@@ -245,7 +332,85 @@ export class AccountsController {
     }
 
     this.throttle.recordSuccess(key);
-    this.startSession(res, account.id);
+    this.session.start(req, res, account);
+    res.redirect(this.safeNext(body.next));
+  }
+
+  @Get('set-password')
+  @Header('Content-Type', 'text/html')
+  setPasswordForm(
+    @Query('token') token?: string,
+    @Query('next') next?: string,
+  ): string {
+    const lookup = this.tokens.find(token);
+
+    if (!lookup.ok) {
+      return setPasswordPage({ valid: false, error: lookup.problem });
+    }
+
+    const account = this.accounts.findById(lookup.token.accountId);
+
+    return setPasswordPage({
+      valid: true,
+      token,
+      next,
+      name: account?.name,
+      purpose: lookup.token.purpose,
+    });
+  }
+
+  @Post('set-password')
+  @HttpCode(200)
+  @Header('Content-Type', 'text/html')
+  async setPassword(
+    @Body() body: SetPasswordInput & NextTarget,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    const lookup = this.tokens.find(body.token);
+
+    if (!lookup.ok) {
+      res.send(setPasswordPage({ valid: false, error: lookup.problem }));
+      return;
+    }
+
+    const problem = setPasswordProblem(body);
+
+    if (problem) {
+      const account = this.accounts.findById(lookup.token.accountId);
+
+      res.send(
+        setPasswordPage({
+          valid: true,
+          error: problem,
+          token: body.token,
+          next: body.next,
+          name: account?.name,
+          purpose: lookup.token.purpose,
+        }),
+      );
+      return;
+    }
+
+    const account = await this.accounts.setPassword(
+      lookup.token.accountId,
+      body.password ?? '',
+    );
+
+    if (!account) {
+      res.send(
+        setPasswordPage({
+          valid: false,
+          error: 'That link is not valid.',
+        }),
+      );
+      return;
+    }
+
+    this.tokens.consume(lookup.token.id);
+    this.throttle.recordSuccess(this.throttleKey(req));
+    this.session.start(req, res, account);
+
     res.redirect(this.safeNext(body.next));
   }
 
@@ -258,31 +423,27 @@ export class AccountsController {
   @Post('recover')
   @HttpCode(200)
   @Header('Content-Type', 'text/html')
-  recover(
-    @Body() body: RecoveryInput & NextTarget,
+  async recover(
+    @Body() body: ForgotInput & NextTarget,
     @Req() req: Request,
     @Res() res: Response,
-  ): void {
-    const problem = recoveryProblem(body);
+  ): Promise<void> {
+    const problem = forgotProblem(body);
 
     if (problem) {
       res.send(
-        recoverPage({
-          error: problem,
-          email: body.email,
-          code: body.code,
-          next: body.next,
-        }),
+        recoverPage({ error: problem, email: body.email, next: body.next }),
       );
       return;
     }
 
-    const key = this.throttleKey(req);
+    const key = this.linkKey(req);
+    const waitMs = this.throttle.retryAfter(key);
 
-    if (this.throttle.retryAfter(key) > 0) {
+    if (waitMs > 0) {
       res.send(
         recoverPage({
-          error: 'Too many attempts. Try again shortly.',
+          error: this.waitMessage(waitMs),
           email: body.email,
           next: body.next,
         }),
@@ -290,28 +451,55 @@ export class AccountsController {
       return;
     }
 
-    const replacement = this.accounts.recover(body);
+    this.throttle.recordFailure(key);
 
-    if (!replacement) {
-      this.throttle.recordFailure(key);
+    const email = normaliseEmail(body.email);
+    const account = this.accounts.findByEmail(email);
 
-      res.send(
-        recoverPage({
-          error: 'That email and recovery code did not match.',
-          email: body.email,
-          next: body.next,
-        }),
-      );
+    const outcome = account
+      ? await this.sendPasswordLink(req, account, TokenPurpose.Reset, body.next)
+      : { failed: false };
+
+    res.send(checkEmailPage({ email, reset: true, ...outcome }));
+  }
+
+  @Post('password-link')
+  @HttpCode(200)
+  @Header('Content-Type', 'text/html')
+  async selfServiceLink(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    const account = this.current.resolve(req);
+
+    if (!account) {
+      res.redirect(AccountRoutes.signIn.template);
       return;
     }
 
-    const account = this.accounts.findByEmail(body.email);
+    const key = this.linkKey(req);
+    const waitMs = this.throttle.retryAfter(key);
 
-    this.throttle.recordSuccess(key);
-    if (account) this.startSession(res, account.id);
+    if (waitMs > 0) {
+      res.send(this.homePage(account, { error: this.waitMessage(waitMs) }));
+      return;
+    }
+
+    this.throttle.recordFailure(key);
+
+    const purpose = account.secret ? TokenPurpose.Reset : TokenPurpose.Setup;
+    const outcome = await this.sendPasswordLink(req, account, purpose);
 
     res.send(
-      recoveryCodePage(replacement, this.safeNext(body.next), 'recover'),
+      this.homePage(
+        account,
+        outcome.failed
+          ? {
+              error:
+                'We could not send that email just now. Try again shortly.',
+            }
+          : { linkSent: true },
+      ),
     );
   }
 
@@ -360,47 +548,6 @@ export class AccountsController {
     res.send(recoverPage({ requested: true }));
   }
 
-  @Post('recovery')
-  @HttpCode(200)
-  @Header('Content-Type', 'text/html')
-  rotateRecovery(
-    @Body() body: RotateInput,
-    @Req() req: Request,
-    @Res() res: Response,
-  ): void {
-    const account = this.accounts.findById(this.currentId(req));
-
-    if (!account) {
-      res.redirect(AccountRoutes.signIn.template);
-      return;
-    }
-
-    const problem = rotationProblem(body);
-
-    if (problem) {
-      res.send(this.homePage(account, problem));
-      return;
-    }
-
-    const key = this.throttleKey(req);
-
-    if (this.throttle.retryAfter(key) > 0) {
-      res.send(this.homePage(account, 'Too many attempts. Try again shortly.'));
-      return;
-    }
-
-    const code = this.accounts.rotateRecovery(account.id, body.password);
-
-    if (!code) {
-      this.throttle.recordFailure(key);
-      res.send(this.homePage(account, 'That password did not match.'));
-      return;
-    }
-
-    this.throttle.recordSuccess(key);
-    res.send(recoveryCodePage(code, AccountRoutes.home.template, 'rotate'));
-  }
-
   @Get('reset')
   @Header('Content-Type', 'text/html')
   resetForm(
@@ -413,11 +560,11 @@ export class AccountsController {
   @Post('reset')
   @HttpCode(200)
   @Header('Content-Type', 'text/html')
-  reset(
+  async reset(
     @Body() body: RecoveryInput & NextTarget,
     @Req() req: Request,
     @Res() res: Response,
-  ): void {
+  ): Promise<void> {
     const problem = resetProblem(body);
 
     if (problem) {
@@ -446,7 +593,9 @@ export class AccountsController {
     }
 
     const account = this.accounts.findByEmail(body.email);
-    const spent = account ? this.resets.consume(account.id, body.code) : false;
+    const spent = account
+      ? await this.resets.consume(account.id, body.code)
+      : false;
 
     if (!account || !spent) {
       this.throttle.recordFailure(key);
@@ -462,20 +611,20 @@ export class AccountsController {
       return;
     }
 
-    const code = this.accounts.resetPassword(account.id, body.password ?? '');
+    const updated = await this.accounts.setPassword(
+      account.id,
+      body.password ?? '',
+    );
 
     this.throttle.recordSuccess(key);
-    this.startSession(res, account.id);
-    res.send(recoveryCodePage(code, this.safeNext(body.next), 'recover'));
+    if (updated) this.session.start(req, res, updated);
+
+    res.redirect(this.safeNext(body.next));
   }
 
   @Post('sign-out')
-  signOut(@Res() res: Response): void {
-    res.clearCookie(AccountSessionService.COOKIE, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: res.req.secure,
-    });
+  signOut(@Req() req: Request, @Res() res: Response): void {
+    this.session.clear(req, res);
 
     res.redirect('/tutorials');
   }

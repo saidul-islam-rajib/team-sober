@@ -1,97 +1,272 @@
 import request from 'supertest';
-import { useTestApp } from './helpers/harness';
+import {
+  AUTH_SECRET,
+  LEARNER_PASSWORD,
+  sessionCookieFrom,
+  setupLinkFrom,
+  useTestApp,
+} from './helpers/harness';
+import {
+  IDENTITY_COOKIE,
+  issueIdentity,
+  readIdentity,
+} from '../src/shared/identity/identity';
 
 const ctx = useTestApp();
+
+const NAME = 'Saidul Islam Rajib';
+const EMAIL = 'rajib@example.com';
+const PASSWORD = LEARNER_PASSWORD;
+
+const cookiesFrom = (res: request.Response): string[] =>
+  (res.headers['set-cookie'] as unknown as string[]) ?? [];
+
+const sessionFrom = sessionCookieFrom;
+
+const tokenIn = (cookie: string): string =>
+  decodeURIComponent(cookie.split(';')[0].split('=')[1] ?? '');
+
+const linkFrom = setupLinkFrom;
+
+const pathOf = (link: string): string => link.replace(/^https?:\/\/[^/]+/, '');
+
+const issuedCodeFrom = (html: string): string =>
+  /id="issued-code"[^>]*>([^<]+)</.exec(html)?.[1].trim() ?? '';
 
 const register = (extra: Record<string, string> = {}) =>
   request(ctx.server)
     .post('/account/register')
     .type('form')
-    .send({
-      name: 'Saidul Islam Rajib',
-      email: 'rajib@example.com',
-      password: 'correct-horse',
-      ...extra,
-    });
+    .send({ name: NAME, email: EMAIL, ...extra });
 
-const sessionFrom = (res: request.Response): string =>
-  (res.headers['set-cookie'] as unknown as string[])[0];
+const signIn = (password: string, email = EMAIL) =>
+  request(ctx.server)
+    .post('/account/sign-in')
+    .type('form')
+    .send({ email, password });
 
-const codeFrom = (html: string): string =>
-  /id="recovery-code"[^>]*>([^<]+)</.exec(html)?.[1].trim() ?? '';
+/** Register, follow the emailed link and choose a password. */
+const onboard = async (
+  extra: Record<string, string> = {},
+): Promise<{ link: string; session: string }> => {
+  const link = linkFrom((await register(extra).expect(200)).text);
+  const token = new URL(link).searchParams.get('token') ?? '';
 
-const issuedCodeFrom = (html: string): string =>
-  /id="issued-code"[^>]*>([^<]+)</.exec(html)?.[1].trim() ?? '';
+  const res = await request(ctx.server)
+    .post('/account/set-password')
+    .type('form')
+    .send({ token, password: PASSWORD })
+    .expect(302);
 
-describe('accounts', () => {
-  it('serves a register form', () =>
+  return { link, session: sessionFrom(res) };
+};
+
+describe('registering', () => {
+  it('asks for a name and an address but not a password', () =>
     request(ctx.server)
       .get('/account/register')
       .expect(200)
       .expect((res) => {
         expect(res.text).toContain('Create an account');
-        expect(res.text).toContain('name="password"');
+        expect(res.text).toContain('name="email"');
+        expect(res.text).not.toContain('name="password"');
       }));
 
-  it('creates an account, starts a session and shows the recovery code', async () => {
+  it('emails a link instead of signing anybody in', async () => {
     const res = await register().expect(200);
 
-    expect(res.text).toContain('Save your recovery code');
-    expect(sessionFrom(res)).toContain('account_session');
-    expect(sessionFrom(res)).toContain('HttpOnly');
+    expect(res.text).toContain('Check your email');
+    expect(sessionFrom(res)).toBe('');
+    expect(linkFrom(res.text)).toContain('/account/set-password?token=');
   });
 
-  it('rejects a short password without creating anything', async () => {
-    await register({ password: 'short' })
+  it('rejects a malformed email without creating anything', async () => {
+    await register({ email: 'nope' })
       .expect(200)
-      .expect((res) => expect(res.text).toContain('at least'));
+      .expect((res) => expect(res.text).toContain('email'));
 
-    await request(ctx.server)
-      .post('/account/sign-in')
-      .type('form')
-      .send({ email: 'rajib@example.com', password: 'short' })
+    await signIn(PASSWORD, 'nope')
       .expect(200)
       .expect((res) => expect(res.text).toContain('did not match'));
   });
 
-  it('rejects a malformed email', () =>
-    register({ email: 'nope' })
+  it('requires a name', () =>
+    register({ name: '  ' })
       .expect(200)
-      .expect((res) => expect(res.text).toContain('email')));
+      .expect((res) => expect(res.text).toContain('name')));
 
-  it('refuses a duplicate email', async () => {
+  it('will not let anybody sign in before the link is followed', async () => {
     await register().expect(200);
 
-    await register()
-      .expect(200)
-      .expect((res) => expect(res.text).toContain('already has an account'));
-  });
-
-  it('signs in with the right password', async () => {
-    await register().expect(200);
-
-    const res = await request(ctx.server)
-      .post('/account/sign-in')
-      .type('form')
-      .send({ email: 'rajib@example.com', password: 'correct-horse' })
-      .expect(302);
-
-    expect(sessionFrom(res)).toContain('account_session');
-  });
-
-  it('refuses the wrong password', async () => {
-    await register().expect(200);
-
-    await request(ctx.server)
-      .post('/account/sign-in')
-      .type('form')
-      .send({ email: 'rajib@example.com', password: 'wrong' })
+    await signIn(PASSWORD)
       .expect(200)
       .expect((res) => {
         expect(res.text).toContain('did not match');
-        expect(res.headers['set-cookie']).toBeUndefined();
+        expect(sessionFrom(res)).toBe('');
       });
   });
+
+  it('says exactly the same thing for an address that is already registered', async () => {
+    await onboard();
+
+    const again = await register().expect(200);
+
+    // No hint that this address is taken, and no new link issued.
+    expect(again.text).toContain('Check your email');
+    expect(again.text).not.toContain('already');
+    expect(linkFrom(again.text)).toBe('');
+  });
+
+  it('re-sends while the first link is still unused, without duplicating', async () => {
+    const first = linkFrom((await register().expect(200)).text);
+    const second = linkFrom((await register().expect(200)).text);
+
+    expect(second).not.toBe(first);
+
+    // The superseded link is dead; only the newest works.
+    await request(ctx.server)
+      .get(pathOf(first))
+      .expect(200)
+      .expect((res) => expect(res.text).toContain('will not work'));
+
+    await request(ctx.server)
+      .get(pathOf(second))
+      .expect(200)
+      .expect((res) => expect(res.text).toContain('Choose your password'));
+  });
+});
+
+describe('choosing a password from the link', () => {
+  it('shows the form for a live link', async () => {
+    const link = linkFrom((await register().expect(200)).text);
+
+    await request(ctx.server)
+      .get(pathOf(link))
+      .expect(200)
+      .expect((res) => {
+        expect(res.text).toContain('Choose your password');
+        expect(res.text).toContain(NAME);
+        expect(res.text).toContain('name="password"');
+      });
+  });
+
+  it('sets the password and signs the learner straight in', async () => {
+    const { session } = await onboard();
+
+    expect(session).toContain(IDENTITY_COOKIE);
+    expect(session).toContain('HttpOnly');
+
+    await request(ctx.server)
+      .get('/account')
+      .set('Cookie', session)
+      .expect(200)
+      .expect((res) => {
+        expect(res.text).toContain(NAME);
+        expect(res.text).toContain(EMAIL);
+      });
+  });
+
+  it('lets that password sign in afterwards', async () => {
+    await onboard();
+
+    const res = await signIn(PASSWORD).expect(302);
+
+    expect(sessionFrom(res)).toContain(IDENTITY_COOKIE);
+  });
+
+  it('refuses a short password and keeps the link usable', async () => {
+    const link = linkFrom((await register().expect(200)).text);
+    const token = new URL(link).searchParams.get('token') ?? '';
+
+    await request(ctx.server)
+      .post('/account/set-password')
+      .type('form')
+      .send({ token, password: 'short' })
+      .expect(200)
+      .expect((res) => expect(res.text).toContain('at least'));
+
+    await request(ctx.server)
+      .post('/account/set-password')
+      .type('form')
+      .send({ token, password: PASSWORD })
+      .expect(302);
+  });
+
+  it('will not spend the same link twice', async () => {
+    const { link } = await onboard();
+    const token = new URL(link).searchParams.get('token') ?? '';
+
+    await request(ctx.server)
+      .post('/account/set-password')
+      .type('form')
+      .send({ token, password: 'a-second-attempt' })
+      .expect(200)
+      .expect((res) => expect(res.text).toContain('already been used'));
+
+    // The password from the first use is the one that still works.
+    await signIn(PASSWORD).expect(302);
+  });
+
+  it('turns a token nobody issued away', () =>
+    request(ctx.server)
+      .get('/account/set-password?token=' + 'x'.repeat(43))
+      .expect(200)
+      .expect((res) => {
+        expect(res.text).toContain('will not work');
+        expect(res.text).toContain('not valid');
+      }));
+
+  it('carries a relative next target through the email', async () => {
+    const { session } = await onboard({ next: '/tutorials/networking' });
+
+    expect(session).toBeTruthy();
+
+    const link = linkFrom(
+      (
+        await register({
+          email: 'other@example.com',
+          next: '/tutorials/networking',
+        }).expect(200)
+      ).text,
+    );
+
+    expect(link).toContain('next=%2Ftutorials%2Fnetworking');
+  });
+
+  it('refuses to be redirected off-site', async () => {
+    const link = linkFrom(
+      (await register({ next: 'https://evil.example/steal' }).expect(200)).text,
+    );
+
+    expect(link).not.toContain('evil.example');
+
+    const token = new URL(link).searchParams.get('token') ?? '';
+
+    await request(ctx.server)
+      .post('/account/set-password')
+      .type('form')
+      .send({ token, password: PASSWORD, next: 'https://evil.example/steal' })
+      .expect(302)
+      .expect('Location', '/account');
+  });
+});
+
+describe('signing in', () => {
+  it('refuses the wrong password without setting a cookie', async () => {
+    await onboard();
+
+    await signIn('wrong')
+      .expect(200)
+      .expect((res) => {
+        expect(res.text).toContain('did not match');
+        expect(sessionFrom(res)).toBe('');
+      });
+  });
+
+  it('gives the same answer for an address that does not exist', () =>
+    signIn(PASSWORD, 'nobody@example.com')
+      .expect(200)
+      .expect((res) => expect(res.text).toContain('did not match')));
 
   it('sends a signed-out visitor to sign in', () =>
     request(ctx.server)
@@ -99,305 +274,302 @@ describe('accounts', () => {
       .expect(302)
       .expect('Location', '/account/sign-in'));
 
-  it('shows the account page once signed in', async () => {
-    const jar = sessionFrom(await register().expect(200));
-
-    await request(ctx.server)
-      .get('/account')
-      .set('Cookie', jar)
-      .expect(200)
-      .expect((res) => {
-        expect(res.text).toContain('Saidul Islam Rajib');
-        expect(res.text).toContain('rajib@example.com');
-      });
-  });
-
-  it('signs out again', async () => {
-    const jar = sessionFrom(await register().expect(200));
-
-    await request(ctx.server)
-      .post('/account/sign-out')
-      .set('Cookie', jar)
-      .expect(302);
-  });
-
   it('refuses a forged session cookie', () =>
     request(ctx.server)
       .get('/account')
-      .set('Cookie', 'account_session=someone.9999999999999.deadbeef')
+      .set('Cookie', `${IDENTITY_COOKIE}=not.a.real.token`)
       .expect(302)
       .expect('Location', '/account/sign-in'));
 
-  it('only follows a relative next target', async () => {
-    const res = await register({ next: 'https://evil.example/steal' }).expect(
-      200,
-    );
+  it('signs out again', async () => {
+    const { session } = await onboard();
 
-    expect(res.text).toContain('href="/account"');
-    expect(res.text).not.toContain('evil.example');
-  });
+    const res = await request(ctx.server)
+      .post('/account/sign-out')
+      .set('Cookie', session)
+      .expect(302);
 
-  it('follows a relative next target', async () => {
-    const res = await register({ next: '/tutorials/networking' }).expect(200);
+    expect(cookiesFrom(res).join(';')).toContain(IDENTITY_COOKIE);
 
-    expect(res.text).toContain('href="/tutorials/networking"');
-  });
-});
-
-describe('sign-in rate limiting', () => {
-  const attempt = (password: string) =>
-    request(ctx.server)
-      .post('/account/sign-in')
-      .type('form')
-      .send({ email: 'rajib@example.com', password });
-
-  it('locks out after repeated wrong passwords', async () => {
-    await register().expect(200);
-
-    for (let i = 0; i < 5; i += 1) {
-      await attempt('wrong').expect(200);
-    }
-
-    await attempt('wrong')
-      .expect(200)
-      .expect((res) => expect(res.text).toContain('Too many attempts'));
-  });
-
-  it('refuses the right password while locked out', async () => {
-    await register().expect(200);
-
-    for (let i = 0; i < 5; i += 1) {
-      await attempt('wrong').expect(200);
-    }
-
-    await attempt('correct-horse')
-      .expect(200)
-      .expect((res) => {
-        expect(res.text).toContain('Too many attempts');
-        expect(res.headers['set-cookie']).toBeUndefined();
-      });
-  });
-
-  it('lets a correct password through before the limit', async () => {
-    await register().expect(200);
-
-    await attempt('wrong').expect(200);
-
-    await attempt('correct-horse')
+    await request(ctx.server)
+      .get('/account')
       .expect(302)
-      .expect((res) => expect(res.headers['set-cookie']).toBeDefined());
+      .expect('Location', '/account/sign-in');
   });
-});
 
-describe('password recovery', () => {
-  it('serves a recovery form', () =>
-    request(ctx.server)
-      .get('/account/recover')
-      .expect(200)
-      .expect((res) => {
-        expect(res.text).toContain('Reset your password');
-        expect(res.text).toContain('name="code"');
-      }));
-
-  it('links to it from the sign-in page', () =>
+  it('links to the forgotten-password page', () =>
     request(ctx.server)
       .get('/account/sign-in')
       .expect(200)
       .expect((res) => expect(res.text).toContain('/account/recover')));
+});
 
-  it('resets the password with the code from registration', async () => {
-    const code = codeFrom((await register().expect(200)).text);
-    expect(code).toBeTruthy();
+describe('sign-in rate limiting', () => {
+  it('locks out after repeated wrong passwords', async () => {
+    await onboard();
 
-    await request(ctx.server)
-      .post('/account/recover')
-      .type('form')
-      .send({
-        email: 'rajib@example.com',
-        code,
-        password: 'a-brand-new-password',
-      })
+    for (let i = 0; i < 5; i += 1) await signIn('wrong').expect(200);
+
+    await signIn('wrong')
       .expect(200)
-      .expect((res) => expect(res.text).toContain('Save your recovery code'));
-
-    await request(ctx.server)
-      .post('/account/sign-in')
-      .type('form')
-      .send({ email: 'rajib@example.com', password: 'a-brand-new-password' })
-      .expect(302);
+      .expect((res) => expect(res.text).toContain('Too many attempts'));
   });
 
-  it('refuses a wrong code and leaves the old password working', async () => {
-    await register().expect(200);
+  it('refuses even the right password while locked out', async () => {
+    await onboard();
 
-    await request(ctx.server)
-      .post('/account/recover')
-      .type('form')
-      .send({
-        email: 'rajib@example.com',
-        code: 'WRONG-WRONG-WRONG-WRONG',
-        password: 'a-brand-new-password',
-      })
+    for (let i = 0; i < 5; i += 1) await signIn('wrong').expect(200);
+
+    await signIn(PASSWORD)
       .expect(200)
-      .expect((res) => expect(res.text).toContain('did not match'));
-
-    await request(ctx.server)
-      .post('/account/sign-in')
-      .type('form')
-      .send({ email: 'rajib@example.com', password: 'correct-horse' })
-      .expect(302);
+      .expect((res) => {
+        expect(res.text).toContain('Too many attempts');
+        expect(sessionFrom(res)).toBe('');
+      });
   });
 
-  it('will not reuse a spent code', async () => {
-    const code = codeFrom((await register().expect(200)).text);
+  it('lets a correct password through before the limit', async () => {
+    await onboard();
 
-    await request(ctx.server)
+    await signIn('wrong').expect(200);
+    await signIn(PASSWORD).expect(302);
+  });
+});
+
+describe('forgotten passwords', () => {
+  it('serves a form that asks only for the address', () =>
+    request(ctx.server)
+      .get('/account/recover')
+      .expect(200)
+      .expect((res) => {
+        expect(res.text).toContain('Forgotten your password?');
+        expect(res.text).toContain('name="email"');
+        expect(res.text).not.toContain('name="code"');
+      }));
+
+  it('emails a link that sets a new password and signs the learner in', async () => {
+    await onboard();
+
+    const asked = await request(ctx.server)
       .post('/account/recover')
       .type('form')
-      .send({
-        email: 'rajib@example.com',
-        code,
-        password: 'first-new-password',
-      })
+      .send({ email: EMAIL })
       .expect(200);
 
+    expect(asked.text).toContain('Check your email');
+
+    const token = new URL(linkFrom(asked.text)).searchParams.get('token') ?? '';
+
+    const res = await request(ctx.server)
+      .post('/account/set-password')
+      .type('form')
+      .send({ token, password: 'a-brand-new-password' })
+      .expect(302);
+
+    expect(sessionFrom(res)).toContain(IDENTITY_COOKIE);
+
+    await signIn('a-brand-new-password').expect(302);
+  });
+
+  it('leaves the old password working until the link is used', async () => {
+    await onboard();
+
     await request(ctx.server)
       .post('/account/recover')
       .type('form')
-      .send({ email: 'rajib@example.com', code, password: 'second-attempt' })
-      .expect(200)
-      .expect((res) => expect(res.text).toContain('did not match'));
+      .send({ email: EMAIL })
+      .expect(200);
+
+    await signIn(PASSWORD).expect(302);
+  });
+
+  it('retires every existing session when the password changes', async () => {
+    const { session } = await onboard();
+
+    const asked = await request(ctx.server)
+      .post('/account/recover')
+      .type('form')
+      .send({ email: EMAIL })
+      .expect(200);
+
+    const token = new URL(linkFrom(asked.text)).searchParams.get('token') ?? '';
+
+    await request(ctx.server)
+      .post('/account/set-password')
+      .type('form')
+      .send({ token, password: 'a-brand-new-password' })
+      .expect(302);
+
+    // The cookie from before the reset carries the old token version.
+    await request(ctx.server)
+      .get('/account')
+      .set('Cookie', session)
+      .expect(302)
+      .expect('Location', '/account/sign-in');
   });
 
   it('does not reveal whether an address has an account', async () => {
-    await register().expect(200);
+    await onboard();
 
     const known = await request(ctx.server)
       .post('/account/recover')
       .type('form')
-      .send({
-        email: 'rajib@example.com',
-        code: 'AAAAA-AAAAA-AAAAA-AAAAA',
-        password: 'a-brand-new-password',
-      })
+      .send({ email: EMAIL })
       .expect(200);
 
     const unknown = await request(ctx.server)
       .post('/account/recover')
       .type('form')
-      .send({
-        email: 'nobody@example.com',
-        code: 'AAAAA-AAAAA-AAAAA-AAAAA',
-        password: 'a-brand-new-password',
-      })
+      .send({ email: 'nobody@example.com' })
       .expect(200);
 
-    expect(known.text).toContain('did not match');
-    expect(unknown.text).toContain('did not match');
+    expect(known.text).toContain('Check your email');
+    expect(unknown.text).toContain('Check your email');
+    expect(unknown.text).toContain('nobody@example.com');
   });
 
-  it('rejects a short new password before touching the account', () =>
-    request(ctx.server)
-      .post('/account/recover')
-      .type('form')
-      .send({
-        email: 'rajib@example.com',
-        code: 'AAAAA-AAAAA-AAAAA-AAAAA',
-        password: 'short',
-      })
-      .expect(200)
-      .expect((res) => expect(res.text).toContain('at least')));
-
-  it('signs the learner in rather than making them do it again', async () => {
-    const code = codeFrom((await register().expect(200)).text);
-
-    const res = await request(ctx.server)
-      .post('/account/recover')
-      .type('form')
-      .send({ email: 'rajib@example.com', code, password: 'a-new-password' })
-      .expect(200);
-
-    expect(sessionFrom(res)).toContain('account_session');
-  });
-
-  it('tells somebody who has lost the code too where to turn', () =>
+  it('still tells somebody who has lost the mailbox where to turn', () =>
     request(ctx.server)
       .get('/account/recover')
       .expect(200)
       .expect((res) => {
-        expect(res.text).toContain('Lost the code as well?');
-        expect(res.text).toContain('one-time reset link');
+        expect(res.text).toContain('Lost the address as well?');
+        expect(res.text).toContain('/account/recover-request');
       }));
 });
 
-describe('swapping a lost recovery code', () => {
-  it('offers the swap on the account page', async () => {
-    const jar = sessionFrom(await register().expect(200));
+describe('single sign-on across the Team Sober services', () => {
+  const fromSibling = (over: Record<string, unknown> = {}): string =>
+    issueIdentity({
+      email: 'shared@example.com',
+      name: 'Shared Account',
+      sv: 7,
+      maxAgeMs: 60 * 60 * 1000,
+      issuer: 'bachelor-point',
+      ...over,
+    });
+
+  const cookie = (token: string) => `${IDENTITY_COOKIE}=${token}`;
+
+  it('lets somebody who registered on another service straight in', () =>
+    request(ctx.server)
+      .get('/account')
+      .set('Cookie', cookie(fromSibling()))
+      .expect(200)
+      .expect((res) => {
+        expect(res.text).toContain('Shared Account');
+        expect(res.text).toContain('shared@example.com');
+      }));
+
+  it('creates the local account once and reuses it after that', async () => {
+    const jar = cookie(fromSibling());
+
+    await request(ctx.server).get('/account').set('Cookie', jar).expect(200);
+    await request(ctx.server).get('/account').set('Cookie', jar).expect(200);
+
+    const admin = await ctx.signIn();
+
+    const listed = await request(ctx.server)
+      .get('/admin/accounts?q=shared@example.com')
+      .set('Cookie', admin)
+      .expect(200);
+
+    // One row, not one per visit.
+    expect(listed.text.match(/href="\/admin\/accounts\/[^"]+"/g)).toHaveLength(
+      1,
+    );
+  });
+
+  it('offers to set a local password, since there is not one yet', () =>
+    request(ctx.server)
+      .get('/account')
+      .set('Cookie', cookie(fromSibling()))
+      .expect(200)
+      .expect((res) => {
+        expect(res.text).toContain('no password on this account yet');
+        expect(res.text).toContain('action="/account/password-link"');
+      }));
+
+  it('joins up with an account that already exists here', async () => {
+    await onboard();
 
     await request(ctx.server)
       .get('/account')
-      .set('Cookie', jar)
+      .set('Cookie', cookie(fromSibling({ email: EMAIL })))
       .expect(200)
-      .expect((res) => {
-        expect(res.text).toContain('Recovery code');
-        expect(res.text).toContain('action="/account/recovery"');
-      });
-  });
+      .expect((res) => expect(res.text).toContain(EMAIL));
 
-  it('shows a new code once the password is confirmed', async () => {
-    const first = await register().expect(200);
-    const jar = sessionFrom(first);
+    const admin = await ctx.signIn();
 
-    const res = await request(ctx.server)
-      .post('/account/recovery')
-      .set('Cookie', jar)
-      .type('form')
-      .send({ password: 'correct-horse' })
+    const listed = await request(ctx.server)
+      .get('/admin/accounts')
+      .set('Cookie', admin)
       .expect(200);
 
-    expect(codeFrom(res.text)).toBeTruthy();
-    expect(codeFrom(res.text)).not.toBe(codeFrom(first.text));
+    expect(listed.text.match(/rajib@example\.com/g)).toHaveLength(1);
   });
 
-  it('retires the code it replaces', async () => {
-    const first = await register().expect(200);
-    const old = codeFrom(first.text);
+  it('refuses a session signed with a different secret', async () => {
+    const token = fromSibling();
 
-    await request(ctx.server)
-      .post('/account/recovery')
-      .set('Cookie', sessionFrom(first))
-      .type('form')
-      .send({ password: 'correct-horse' })
-      .expect(200);
+    process.env.AUTH_SECRET = 'a-completely-different-secret-of-good-length';
 
-    await request(ctx.server)
-      .post('/account/recover')
-      .type('form')
-      .send({ email: 'rajib@example.com', code: old, password: 'no-thank-you' })
-      .expect(200)
-      .expect((res) => expect(res.text).toContain('did not match'));
+    try {
+      await request(ctx.server)
+        .get('/account')
+        .set('Cookie', cookie(token))
+        .expect(302)
+        .expect('Location', '/account/sign-in');
+    } finally {
+      process.env.AUTH_SECRET = AUTH_SECRET;
+    }
   });
 
-  it('refuses the wrong password without issuing anything', async () => {
-    const jar = sessionFrom(await register().expect(200));
+  it('refuses a session that has expired', () =>
+    request(ctx.server)
+      .get('/account')
+      .set('Cookie', cookie(fromSibling({ maxAgeMs: -1000 })))
+      .expect(302)
+      .expect('Location', '/account/sign-in'));
+
+  it('mints a session the other services can read', async () => {
+    const { session } = await onboard();
+    const claims = readIdentity(tokenIn(session));
+
+    expect(claims).toBeTruthy();
+    expect(claims?.iss).toBe('team-sober');
+    expect(claims?.email).toBe(EMAIL);
+    expect(claims?.name).toBe(NAME);
+  });
+
+  it('scopes the cookie to the parent domain when one is configured', async () => {
+    process.env.SSO_COOKIE_DOMAIN = '.team-sober.com';
+
+    try {
+      await register({ email: 'domain@example.com' }).expect(200);
+      const { session } = await onboard({ email: 'domain@example.com' });
+
+      expect(session).toContain('Domain=.team-sober.com');
+    } finally {
+      delete process.env.SSO_COOKIE_DOMAIN;
+    }
+  });
+});
+
+describe('managing your own password', () => {
+  it('emails a link rather than asking for the old password', async () => {
+    const { session } = await onboard();
 
     await request(ctx.server)
-      .post('/account/recovery')
-      .set('Cookie', jar)
-      .type('form')
-      .send({ password: 'wrong' })
+      .post('/account/password-link')
+      .set('Cookie', session)
       .expect(200)
-      .expect((res) => {
-        expect(res.text).toContain('did not match');
-        expect(codeFrom(res.text)).toBe('');
-      });
+      .expect((res) => expect(res.text).toContain('A link is on its way'));
   });
 
   it('sends a signed-out visitor to sign in instead', () =>
     request(ctx.server)
-      .post('/account/recovery')
-      .type('form')
-      .send({ password: 'correct-horse' })
+      .post('/account/password-link')
       .expect(302)
       .expect('Location', '/account/sign-in'));
 });
@@ -435,7 +607,7 @@ describe('resets the owner issues by hand', () => {
       .expect('Location', '/login'));
 
   it('lists the learners who have registered', async () => {
-    await register().expect(200);
+    await onboard();
     const admin = await ctx.signIn();
 
     await request(ctx.server)
@@ -443,26 +615,14 @@ describe('resets the owner issues by hand', () => {
       .set('Cookie', admin)
       .expect(200)
       .expect((res) => {
-        expect(res.text).toContain('Saidul Islam Rajib');
-        expect(res.text).toContain('rajib@example.com');
+        expect(res.text).toContain(NAME);
+        expect(res.text).toContain(EMAIL);
       });
   });
 
-  it('finds an account by part of the email', async () => {
-    await register().expect(200);
-    const admin = await ctx.signIn();
-
-    await request(ctx.server)
-      .get('/admin/accounts?q=nobody')
-      .set('Cookie', admin)
-      .expect(200)
-      .expect((res) => expect(res.text).not.toContain('rajib@example.com'));
-  });
-
   it('will not issue a reset without a record of the check', async () => {
-    await register().expect(200);
+    await onboard();
     const admin = await ctx.signIn();
-
     const id = await accountId(admin);
 
     await request(ctx.server)
@@ -478,9 +638,8 @@ describe('resets the owner issues by hand', () => {
   });
 
   it('shows the code once, with a link the learner can follow', async () => {
-    await register().expect(200);
+    await onboard();
     const admin = await ctx.signIn();
-
     const id = await accountId(admin);
 
     const issued = await request(ctx.server)
@@ -497,39 +656,26 @@ describe('resets the owner issues by hand', () => {
       .get(`/admin/accounts/${id}`)
       .set('Cookie', admin)
       .expect(200)
-      .expect((res) => {
-        expect(issuedCodeFrom(res.text)).toBe('');
-        expect(res.text).toContain('Replied from the address on the account');
-      });
+      .expect((res) => expect(issuedCodeFrom(res.text)).toBe(''));
   });
 
-  it('sets a new password, signs the learner in and replaces their code', async () => {
-    await register().expect(200);
+  it('sets a new password and signs the learner in', async () => {
+    await onboard();
     const code = await issue(await ctx.signIn());
 
     const res = await request(ctx.server)
       .post('/account/reset')
       .type('form')
-      .send({
-        email: 'rajib@example.com',
-        code,
-        password: 'chosen-by-the-learner',
-      })
-      .expect(200);
-
-    expect(res.text).toContain('Save your recovery code');
-    expect(codeFrom(res.text)).toBeTruthy();
-    expect(sessionFrom(res)).toContain('account_session');
-
-    await request(ctx.server)
-      .post('/account/sign-in')
-      .type('form')
-      .send({ email: 'rajib@example.com', password: 'chosen-by-the-learner' })
+      .send({ email: EMAIL, code, password: 'chosen-by-the-learner' })
       .expect(302);
+
+    expect(sessionFrom(res)).toContain(IDENTITY_COOKIE);
+
+    await signIn('chosen-by-the-learner').expect(302);
   });
 
   it('prefills the code from the link', async () => {
-    await register().expect(200);
+    await onboard();
     const code = await issue(await ctx.signIn());
 
     await request(ctx.server)
@@ -539,49 +685,24 @@ describe('resets the owner issues by hand', () => {
   });
 
   it('will not spend the same code twice', async () => {
-    await register().expect(200);
+    await onboard();
     const code = await issue(await ctx.signIn());
 
     const spend = (password: string) =>
       request(ctx.server)
         .post('/account/reset')
         .type('form')
-        .send({ email: 'rajib@example.com', code, password });
+        .send({ email: EMAIL, code, password });
 
-    await spend('chosen-by-the-learner').expect(200);
+    await spend('chosen-by-the-learner').expect(302);
 
     await spend('a-second-go')
       .expect(200)
       .expect((res) => expect(res.text).toContain('did not match'));
   });
 
-  it('will not open an account the code was not cut for', async () => {
-    await register().expect(200);
-    const code = await issue(await ctx.signIn());
-
-    await register({ email: 'other@example.com' }).expect(200);
-
-    await request(ctx.server)
-      .post('/account/reset')
-      .type('form')
-      .send({ email: 'other@example.com', code, password: 'not-my-code' })
-      .expect(200)
-      .expect((res) => expect(res.text).toContain('did not match'));
-  });
-
-  it('leaves the old password working until the code is spent', async () => {
-    await register().expect(200);
-    await issue(await ctx.signIn());
-
-    await request(ctx.server)
-      .post('/account/sign-in')
-      .type('form')
-      .send({ email: 'rajib@example.com', password: 'correct-horse' })
-      .expect(302);
-  });
-
   it('cancels an outstanding code on request', async () => {
-    await register().expect(200);
+    await onboard();
     const admin = await ctx.signIn();
 
     const code = await issue(admin);
@@ -596,28 +717,13 @@ describe('resets the owner issues by hand', () => {
     await request(ctx.server)
       .post('/account/reset')
       .type('form')
-      .send({ email: 'rajib@example.com', code, password: 'too-late-now' })
-      .expect(200)
-      .expect((res) => expect(res.text).toContain('did not match'));
-  });
-
-  it('cancels the earlier code when a second is issued', async () => {
-    await register().expect(200);
-    const admin = await ctx.signIn();
-
-    const first = await issue(admin);
-    await issue(admin, 'Called back on the number we had');
-
-    await request(ctx.server)
-      .post('/account/reset')
-      .type('form')
-      .send({ email: 'rajib@example.com', code: first, password: 'stale-code' })
+      .send({ email: EMAIL, code, password: 'too-late-now' })
       .expect(200)
       .expect((res) => expect(res.text).toContain('did not match'));
   });
 
   it('does not reveal whether an address has an account', async () => {
-    await register().expect(200);
+    await onboard();
 
     const unknown = await request(ctx.server)
       .post('/account/reset')
@@ -633,7 +739,7 @@ describe('resets the owner issues by hand', () => {
       .post('/account/reset')
       .type('form')
       .send({
-        email: 'rajib@example.com',
+        email: EMAIL,
         code: 'AAAAA-AAAAA-AAAAA-AAAAA',
         password: 'a-brand-new-password',
       })

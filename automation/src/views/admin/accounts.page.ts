@@ -27,6 +27,18 @@ import { adminNav, layout } from '../shared/layout';
 
 const NOTE_MAX = 300;
 
+/**
+ * An account with no secret has either never followed its setup link, or was
+ * created from a session on one of the sibling apps and has no local password.
+ */
+function passwordState(account: Account): string {
+  if (account.secret) return `Set ${formatDay(account.updatedAt)}`;
+
+  return account.origin && account.origin !== 'team-sober'
+    ? `None — signs in via ${account.origin}`
+    : 'Awaiting setup link';
+}
+
 const STYLES = [css(UI_BUNDLE), css(ACCOUNT_ADMIN_BUNDLE)];
 const SCRIPTS = [js(UI_BUNDLE)];
 
@@ -151,11 +163,9 @@ export function accountsAdminPage({
         html`<span class="s">${formatDay(account.createdAt)}</span>`,
     },
     {
-      header: 'Recovery code',
+      header: 'Password',
       cell: ({ account }) =>
-        html`<span class="s"
-          >${formatDay(account.recoveryIssuedAt ?? account.createdAt)}</span
-        >`,
+        html`<span class="s">${passwordState(account)}</span>`,
     },
     {
       header: 'Certificates',
@@ -346,10 +356,8 @@ export function accountDetailPage({
             </div>
             <ul class="facts">
               <li><span>Joined</span>${formatDay(account.createdAt)}</li>
-              <li>
-                <span>Recovery code from</span
-                >${formatDay(account.recoveryIssuedAt ?? account.createdAt)}
-              </li>
+              <li><span>Password</span>${passwordState(account)}</li>
+              <li><span>Registered on</span>${account.origin ?? '—'}</li>
               <li><span>Certificates</span>${certificates}</li>
             </ul>`,
         })}

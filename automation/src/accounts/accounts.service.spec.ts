@@ -1,19 +1,27 @@
+import { randomBytes, scryptSync } from 'crypto';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { AccountsService } from './accounts.service';
+import { AccountStatus } from './account-status';
 import {
-  formatRecoveryCode,
+  MAX_PASSWORD_LENGTH,
   normaliseEmail,
   normaliseName,
   registrationProblem,
+  setPasswordProblem,
   validEmail,
   validPassword,
 } from './account.model';
+import { needsRehash, seal, sealMatches } from './secret';
 import { RecoveryPolicy } from '../shared/config/policies';
+import { IDENTITY_ISSUER, identityId } from '../shared/identity/identity';
 
 const MIN_PASSWORD_LENGTH = RecoveryPolicy.minPasswordLength;
-const RECOVERY_CODE_LENGTH = RecoveryPolicy.codeLength;
+
+const NAME = 'Saidul Islam Rajib';
+const EMAIL = 'rajib@example.com';
+const PASSWORD = 'correct-horse-battery';
 
 describe('account.model', () => {
   it('trims and collapses a name', () => {
@@ -35,19 +43,59 @@ describe('account.model', () => {
     expect(validPassword('x'.repeat(MIN_PASSWORD_LENGTH - 1))).toBe(false);
   });
 
+  it('refuses a password long enough to be a denial of service', () => {
+    expect(validPassword('x'.repeat(MAX_PASSWORD_LENGTH))).toBe(true);
+    expect(validPassword('x'.repeat(MAX_PASSWORD_LENGTH + 1))).toBe(false);
+    expect(
+      setPasswordProblem({ password: 'x'.repeat(MAX_PASSWORD_LENGTH + 1) }),
+    ).toContain('or fewer');
+  });
+
   it('reports the first problem with a registration', () => {
     expect(registrationProblem({})).toContain('name');
     expect(registrationProblem({ name: 'A' })).toContain('email');
-    expect(registrationProblem({ name: 'A', email: 'a@b.com' })).toContain(
-      'password',
-    );
-    expect(
-      registrationProblem({
-        name: 'A',
-        email: 'a@b.com',
-        password: 'x'.repeat(MIN_PASSWORD_LENGTH),
-      }),
-    ).toBe('');
+    expect(registrationProblem({ name: 'A', email: 'a@b.com' })).toBe('');
+  });
+
+  it('no longer asks for a password when registering', () => {
+    // The password is chosen from the emailed link instead.
+    expect(registrationProblem({ name: 'A', email: 'a@b.com' })).toBe('');
+  });
+});
+
+describe('secret', () => {
+  it('round-trips a password', async () => {
+    const sealed = await seal(PASSWORD);
+
+    expect(await sealMatches(sealed, PASSWORD)).toBe(true);
+    expect(await sealMatches(sealed, 'something else')).toBe(false);
+  });
+
+  it('writes the format Bachelor Point also reads', async () => {
+    expect(await seal(PASSWORD)).toMatch(/^scrypt\$16384\$8\$1\$[^$]+\$[^$]+$/);
+  });
+
+  it('salts, so the same password seals differently each time', async () => {
+    expect(await seal(PASSWORD)).not.toBe(await seal(PASSWORD));
+  });
+
+  it('still verifies the older salt:hash form this project used to write', async () => {
+    const salt = randomBytes(16).toString('hex');
+    const legacy = `${salt}:${scryptSync(PASSWORD, salt, 64).toString('hex')}`;
+
+    expect(await sealMatches(legacy, PASSWORD)).toBe(true);
+    expect(await sealMatches(legacy, 'wrong')).toBe(false);
+    expect(needsRehash(legacy)).toBe(true);
+  });
+
+  it('does not want to rehash what it just wrote', async () => {
+    expect(needsRehash(await seal(PASSWORD))).toBe(false);
+  });
+
+  it('refuses nonsense rather than throwing', async () => {
+    expect(await sealMatches('', PASSWORD)).toBe(false);
+    expect(await sealMatches('not-a-hash', PASSWORD)).toBe(false);
+    expect(await sealMatches('scrypt$3$8$1$AAAA$BBBB', PASSWORD)).toBe(false);
   });
 });
 
@@ -66,406 +114,183 @@ describe('AccountsService', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  const register = () =>
-    service.register({
-      name: 'Saidul Islam Rajib',
-      email: 'Rajib@Example.com',
-      password: 'correct-horse',
-    }).account;
+  const begin = (over: { name?: string; email?: string } = {}) =>
+    service.beginRegistration({ name: NAME, email: EMAIL, ...over });
 
-  it('starts empty', () => {
-    expect(service.count).toBe(0);
-  });
+  const registered = async () => {
+    const account = begin();
+    await service.setPassword(account!.id, PASSWORD);
 
-  it('stores an account with a normalised email', () => {
-    expect(register().email).toBe('rajib@example.com');
-  });
+    return service.findByEmail(EMAIL)!;
+  };
 
-  it('never stores the password itself', () => {
-    const account = register();
+  describe('registering', () => {
+    it('creates an account with no password, awaiting the emailed link', () => {
+      const account = begin();
 
-    expect(account.secret).not.toContain('correct-horse');
-    expect(account.secret).toContain(':');
-  });
-
-  it('salts, so two accounts with one password differ', () => {
-    const a = register();
-    const b = service.register({
-      name: 'Other',
-      email: 'other@example.com',
-      password: 'correct-horse',
-    }).account;
-
-    expect(a.secret).not.toBe(b.secret);
-  });
-
-  it('authenticates the right password and refuses the wrong one', () => {
-    register();
-
-    expect(
-      service.authenticate({
-        email: 'rajib@example.com',
-        password: 'correct-horse',
-      }),
-    ).toBeDefined();
-
-    expect(
-      service.authenticate({ email: 'rajib@example.com', password: 'wrong' }),
-    ).toBeUndefined();
-  });
-
-  it('matches the email regardless of case', () => {
-    register();
-
-    expect(
-      service.authenticate({
-        email: 'RAJIB@EXAMPLE.COM',
-        password: 'correct-horse',
-      }),
-    ).toBeDefined();
-  });
-
-  it('refuses an unknown address without throwing', () => {
-    expect(
-      service.authenticate({ email: 'nobody@example.com', password: 'x' }),
-    ).toBeUndefined();
-  });
-
-  it('reports an address as taken', () => {
-    register();
-
-    expect(service.taken('rajib@example.com')).toBe(true);
-    expect(service.taken('someone@example.com')).toBe(false);
-  });
-
-  it('survives a restart', () => {
-    register();
-
-    expect(new AccountsService().count).toBe(1);
-  });
-});
-
-describe('recovery codes', () => {
-  let dir: string;
-  let service: AccountsService;
-
-  beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'recovery-test-'));
-    process.env.DATA_DIR = dir;
-    service = new AccountsService();
-  });
-
-  afterEach(() => {
-    delete process.env.DATA_DIR;
-    rmSync(dir, { recursive: true, force: true });
-  });
-
-  const create = () =>
-    service.register({
-      name: 'Rajib',
-      email: 'rajib@example.com',
-      password: 'correct-horse',
+      expect(account).toBeTruthy();
+      expect(account!.secret).toBe('');
+      expect(account!.status).toBe(AccountStatus.Unverified);
+      expect(account!.tokenVersion).toBe(0);
+      expect(account!.origin).toBe(IDENTITY_ISSUER);
     });
 
-  it('hands out a code of the declared shape', () => {
-    const { code } = create();
+    it('normalises what it stores', () => {
+      const account = begin({ name: '  Saidul   Rajib ', email: ' A@B.COM ' });
 
-    expect(code).toHaveLength(RECOVERY_CODE_LENGTH);
-    expect(code).toMatch(/^[A-Z0-9]+$/);
-  });
-
-  it('never stores the code itself', () => {
-    const { account, code } = create();
-
-    expect(account.recovery).not.toContain(code);
-    expect(account.recovery).toContain(':');
-  });
-
-  it('gives each account a different code', () => {
-    const first = create().code;
-
-    const second = service.register({
-      name: 'Other',
-      email: 'other@example.com',
-      password: 'correct-horse',
-    }).code;
-
-    expect(second).not.toBe(first);
-  });
-
-  it('resets the password when the code matches', () => {
-    const { code } = create();
-
-    expect(
-      service.recover({
-        email: 'rajib@example.com',
-        code,
-        password: 'a-new-password',
-      }),
-    ).not.toBe('');
-
-    expect(
-      service.authenticate({
-        email: 'rajib@example.com',
-        password: 'a-new-password',
-      }),
-    ).toBeDefined();
-
-    expect(
-      service.authenticate({
-        email: 'rajib@example.com',
-        password: 'correct-horse',
-      }),
-    ).toBeUndefined();
-  });
-
-  it('accepts the code however it is punctuated or cased', () => {
-    const { code } = create();
-
-    expect(
-      service.recover({
-        email: 'rajib@example.com',
-        code: formatRecoveryCode(code).toLowerCase(),
-        password: 'a-new-password',
-      }),
-    ).not.toBe('');
-  });
-
-  it('refuses a wrong code and leaves the password alone', () => {
-    create();
-
-    expect(
-      service.recover({
-        email: 'rajib@example.com',
-        code: 'W'.repeat(RECOVERY_CODE_LENGTH),
-        password: 'a-new-password',
-      }),
-    ).toBe('');
-
-    expect(
-      service.authenticate({
-        email: 'rajib@example.com',
-        password: 'correct-horse',
-      }),
-    ).toBeDefined();
-  });
-
-  it('refuses an unknown address without throwing', () => {
-    expect(
-      service.recover({
-        email: 'nobody@example.com',
-        code: 'X'.repeat(RECOVERY_CODE_LENGTH),
-        password: 'a-new-password',
-      }),
-    ).toBe('');
-  });
-
-  it('burns the code, so it cannot be reused', () => {
-    const { code } = create();
-
-    const replacement = service.recover({
-      email: 'rajib@example.com',
-      code,
-      password: 'a-new-password',
+      expect(account!.name).toBe('Saidul Rajib');
+      expect(account!.email).toBe('a@b.com');
     });
 
-    expect(replacement).not.toBe(code);
-
-    expect(
-      service.recover({
-        email: 'rajib@example.com',
-        code,
-        password: 'another-password',
-      }),
-    ).toBe('');
-
-    expect(
-      service.recover({
-        email: 'rajib@example.com',
-        code: replacement,
-        password: 'another-password',
-      }),
-    ).not.toBe('');
-  });
-
-  it('records when the current code was issued', () => {
-    const { account } = create();
-
-    expect(account.recoveryIssuedAt).toBe(account.createdAt);
-  });
-
-  describe('swapping a lost code for a new one', () => {
-    it('gives a different code to somebody who knows the password', () => {
-      const { account, code } = create();
-
-      const replacement = service.rotateRecovery(account.id, 'correct-horse');
-
-      expect(replacement).not.toBe('');
-      expect(replacement).not.toBe(code);
-    });
-
-    it('retires the old code the moment a new one is issued', () => {
-      const { account, code } = create();
-
-      service.rotateRecovery(account.id, 'correct-horse');
+    it('cannot be signed into until a password is set', async () => {
+      begin();
 
       expect(
-        service.recover({
-          email: 'rajib@example.com',
-          code,
-          password: 'a-new-password',
-        }),
-      ).toBe('');
-    });
-
-    it('lets the new code reset the password', () => {
-      const { account } = create();
-
-      const replacement = service.rotateRecovery(account.id, 'correct-horse');
-
+        await service.authenticate({ email: EMAIL, password: '' }),
+      ).toBeUndefined();
       expect(
-        service.recover({
-          email: 'rajib@example.com',
-          code: replacement,
-          password: 'a-new-password',
-        }),
-      ).not.toBe('');
+        await service.authenticate({ email: EMAIL, password: PASSWORD }),
+      ).toBeUndefined();
     });
 
-    it('refuses a wrong password and leaves the code alone', () => {
-      const { account, code } = create();
+    it('re-sends rather than duplicating while it is still awaiting a password', () => {
+      const first = begin();
+      const second = begin({ name: 'Corrected Name' });
 
-      expect(service.rotateRecovery(account.id, 'wrong')).toBe('');
-
-      expect(
-        service.recover({
-          email: 'rajib@example.com',
-          code,
-          password: 'a-new-password',
-        }),
-      ).not.toBe('');
+      expect(second).toBeTruthy();
+      expect(second!.id).toBe(first!.id);
+      expect(second!.name).toBe('Corrected Name');
+      expect(service.count).toBe(1);
     });
 
-    it('refuses an unknown account without throwing', () => {
-      expect(service.rotateRecovery('nobody', 'correct-horse')).toBe('');
-    });
+    it('declines to say anything once the address has a working password', async () => {
+      await registered();
 
-    it('leaves the password working', () => {
-      const { account } = create();
-
-      service.rotateRecovery(account.id, 'correct-horse');
-
-      expect(
-        service.authenticate({
-          email: 'rajib@example.com',
-          password: 'correct-horse',
-        }),
-      ).toBeDefined();
-    });
-
-    it('moves the date the code was issued on', () => {
-      const { account } = create();
-      const before = account.recoveryIssuedAt;
-
-      service.rotateRecovery(account.id, 'correct-horse');
-
-      expect(account.recoveryIssuedAt).not.toBe(before);
+      // null means "send nothing" — the caller shows the same page regardless,
+      // so a stranger cannot learn which addresses are registered.
+      expect(begin()).toBeNull();
+      expect(service.count).toBe(1);
     });
   });
 
-  describe('resetting a password on the owner’s say-so', () => {
-    it('sets the password and hands back a fresh code', () => {
-      const { account, code } = create();
+  describe('setting a password', () => {
+    it('activates the account and signs a password in', async () => {
+      const account = begin()!;
+      const updated = await service.setPassword(account.id, PASSWORD);
 
-      const replacement = service.resetPassword(account.id, 'set-by-the-owner');
-
-      expect(replacement).not.toBe('');
-      expect(replacement).not.toBe(code);
-
+      expect(updated!.status).toBe(AccountStatus.Active);
+      expect(updated!.secret).not.toBe('');
       expect(
-        service.authenticate({
-          email: 'rajib@example.com',
-          password: 'set-by-the-owner',
-        }),
-      ).toBeDefined();
+        await service.authenticate({ email: EMAIL, password: PASSWORD }),
+      ).toBeTruthy();
     });
 
-    it('stops the old password working', () => {
-      const { account } = create();
+    it('bumps the token version, retiring sessions issued before it', async () => {
+      const account = begin()!;
 
-      service.resetPassword(account.id, 'set-by-the-owner');
+      await service.setPassword(account.id, PASSWORD);
+      expect(service.findByEmail(EMAIL)!.tokenVersion).toBe(1);
+
+      await service.setPassword(account.id, 'a-different-password');
+      expect(service.findByEmail(EMAIL)!.tokenVersion).toBe(2);
+    });
+
+    it('leaves nothing behind for an account that is not there', async () => {
+      expect(await service.setPassword('nobody', PASSWORD)).toBeUndefined();
+    });
+  });
+
+  describe('authenticating', () => {
+    it('accepts the right password and refuses the wrong one', async () => {
+      await registered();
 
       expect(
-        service.authenticate({
-          email: 'rajib@example.com',
-          password: 'correct-horse',
+        await service.authenticate({ email: EMAIL, password: PASSWORD }),
+      ).toBeTruthy();
+      expect(
+        await service.authenticate({ email: EMAIL, password: 'wrong' }),
+      ).toBeUndefined();
+    });
+
+    it('is not fooled by an unknown address', async () => {
+      await registered();
+
+      expect(
+        await service.authenticate({
+          email: 'nobody@example.com',
+          password: PASSWORD,
         }),
       ).toBeUndefined();
     });
 
-    it('retires the code the learner had lost', () => {
-      const { account, code } = create();
+    it('upgrades an older hash the moment the password proves itself', async () => {
+      const account = begin()!;
 
-      service.resetPassword(account.id, 'set-by-the-owner');
+      const salt = randomBytes(16).toString('hex');
+      account.secret = `${salt}:${scryptSync(PASSWORD, salt, 64).toString('hex')}`;
+      account.status = AccountStatus.Active;
 
       expect(
-        service.recover({
-          email: 'rajib@example.com',
-          code,
-          password: 'a-new-password',
-        }),
-      ).toBe('');
-    });
+        await service.authenticate({ email: EMAIL, password: PASSWORD }),
+      ).toBeTruthy();
 
-    it('refuses an unknown account without throwing', () => {
-      expect(service.resetPassword('nobody', 'set-by-the-owner')).toBe('');
-    });
-  });
-});
-
-describe('listing accounts', () => {
-  let dir: string;
-  let service: AccountsService;
-
-  beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'accounts-list-test-'));
-    process.env.DATA_DIR = dir;
-    service = new AccountsService();
-
-    service.register({
-      name: 'Saidul Islam Rajib',
-      email: 'rajib@example.com',
-      password: 'correct-horse',
-    });
-    service.register({
-      name: 'Someone Else',
-      email: 'else@other.test',
-      password: 'correct-horse',
+      expect(service.findByEmail(EMAIL)!.secret).toMatch(/^scrypt\$/);
     });
   });
 
-  afterEach(() => {
-    delete process.env.DATA_DIR;
-    rmSync(dir, { recursive: true, force: true });
+  describe('adopting somebody from a sibling application', () => {
+    const claims = {
+      sub: identityId('elsewhere@example.com'),
+      email: 'elsewhere@example.com',
+      name: 'From Bachelor Point',
+      iss: 'bachelor-point',
+      sv: 4,
+      iat: 0,
+      exp: 0,
+    };
+
+    it('creates a local account, active but without a local password', () => {
+      const account = service.provisionFromIdentity(claims);
+
+      expect(account.status).toBe(AccountStatus.Active);
+      expect(account.secret).toBe('');
+      expect(account.origin).toBe('bachelor-point');
+    });
+
+    it('does not create a second one on the next visit', () => {
+      const first = service.provisionFromIdentity(claims);
+      const second = service.provisionFromIdentity(claims);
+
+      expect(second.id).toBe(first.id);
+      expect(service.count).toBe(1);
+    });
+
+    it('joins up with an account that already exists here', async () => {
+      const mine = await registered();
+
+      const same = service.provisionFromIdentity({ ...claims, email: EMAIL });
+
+      expect(same.id).toBe(mine.id);
+      expect(service.count).toBe(1);
+    });
+
+    it('still cannot be signed into locally with an empty password', () => {
+      service.provisionFromIdentity(claims);
+
+      return expect(
+        service.authenticate({ email: claims.email, password: '' }),
+      ).resolves.toBeUndefined();
+    });
   });
 
-  it('returns everybody when nothing is searched for', () => {
-    expect(service.list()).toHaveLength(2);
-  });
+  describe('listing', () => {
+    it('finds an account by part of the name or address', async () => {
+      await registered();
 
-  it('matches on part of a name, whatever the case', () => {
-    expect(service.list('SAIDUL').map((a) => a.email)).toEqual([
-      'rajib@example.com',
-    ]);
-  });
-
-  it('matches on part of an email', () => {
-    expect(service.list('other.test').map((a) => a.name)).toEqual([
-      'Someone Else',
-    ]);
-  });
-
-  it('returns nothing for a search that matches nobody', () => {
-    expect(service.list('nobody-at-all')).toEqual([]);
+      expect(service.list('rajib')).toHaveLength(1);
+      expect(service.list('example.com')).toHaveLength(1);
+      expect(service.list('nobody')).toHaveLength(0);
+      expect(service.list()).toHaveLength(1);
+    });
   });
 });

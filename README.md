@@ -110,20 +110,35 @@ also why the security trade-offs below are documented honestly rather than quiet
 - Photo gallery with multiple images per entry, an inline slider, and a full-size modal
 - Entirely editable from the admin — nothing hardcoded
 
-### Learner accounts and recovery
+### Learner accounts and single sign-on
 - Accounts for learners, so progress and certificates follow the person rather than the browser
-- Passwords **and** recovery codes are stored as salted scrypt digests — neither can be read back by anybody, the site owner included
-- **Three ways back in**, so a lost code never costs a learner their account:
+- **Registration is name and email only.** A one-time link is emailed; following it is both how a
+  password is chosen and how the address is proved, so an account cannot be signed into until the
+  link is used. Nothing is ever revealed about whether an address is already registered.
+- Passwords are salted scrypt digests in the format `scrypt$N$r$p$salt$hash` — the same encoding
+  Bachelor Point writes, so a password set in either application verifies in the other. Older
+  digests still verify and are re-hashed the next time the password is used.
+- Links are stored as sha256 hashes, valid **once**, expire after **24 hours**, and asking for
+  another retires the one outstanding.
+
+**Single sign-on.** Every Team Sober app is served from a subdomain of `team-sober.com` and signs
+its session cookie with the same `AUTH_SECRET`, so a cookie set on the parent domain is readable by
+all of them. Sign in on one and you are signed in on the rest — no redirects, and no app has to be
+reachable for another to log somebody in. The subject is derived from the address rather than
+allocated, so the same person has the same identifier everywhere with no shared database. A session
+this app did not issue is honoured on sight, and a local account is created for that address the
+first time it is seen. See [DEVELOPMENT.md](DEVELOPMENT.md#single-sign-on-across-the-team-sober-apps).
+
+**Ways back in:**
 
 | They have lost | Route | Who is involved |
 |---|---|---|
-| The recovery code | `/account` → *Recovery code* → confirm password | Nobody. A new code is issued on the spot and the old one dies |
-| The password | `/account/recover` → email + recovery code | Nobody. They set a new password and get a fresh code |
-| Both | Owner issues a one-time reset at `/admin/accounts` | The owner, who verifies them out of band first |
+| The password | `/account/recover` → email → follow the emailed link | Nobody |
+| Access to the mailbox | Owner issues a one-time reset code at `/admin/accounts` | The owner, who verifies them out of band first |
 
-- An admin-issued reset is a code in the same format, valid **once** and for **60 minutes**, tied to
-  one account, revocable, and superseded the moment another is issued. It is displayed a single
-  time — it is sealed at rest like everything else, so it cannot be looked up afterwards.
+- An admin-issued reset is valid **once** and for **60 minutes**, tied to one account, revocable,
+  and superseded the moment another is issued. It is displayed a single time — sealed at rest like
+  everything else, so it cannot be looked up afterwards.
 - Issuing one **requires a written note of how the person was verified**, kept with the account as
   an audit trail. The learner picks their own new password; the owner never sees it.
 
@@ -457,7 +472,8 @@ consumers depend on intent (`RecoveryPolicy.resetLinkMinutes`) rather than strin
 | Group | Controls |
 |---|---|
 | **Security & rate limiting** | Failed-attempt threshold, lockout length, attempt window, learner session length |
-| **Account recovery** | Reset link lifetime, reset history depth, recovery code shape, minimum password length |
+| **Registration & password links** | How long an emailed set-password or reset link stays usable |
+| **Account recovery** | Owner-issued reset lifetime, reset history depth, reset code shape, minimum password length |
 | **Content limits** | Admin listing page size, home sidebar tag limit |
 | **Support & contact** | Where a locked-out or stuck learner is sent, and its link text |
 

@@ -79,10 +79,28 @@ export const CONFIG_GROUPS: ConfigGroup[] = [
     ],
   },
   {
+    id: 'accounts',
+    title: 'Registration & password links',
+    description:
+      'Registering emails a one-time link to choose a password, which is also what proves the address is real. The same link is used for “forgot password”.',
+    fields: [
+      {
+        key: 'accounts.passwordLinkMinutes',
+        kind: 'number',
+        label: 'Password link lifetime',
+        hint: 'How long an emailed set-password or reset link stays usable.',
+        default: 1440,
+        min: 15,
+        max: 10_080,
+        unit: 'minutes',
+      },
+    ],
+  },
+  {
     id: 'recovery',
     title: 'Account recovery',
     description:
-      'Recovery codes, and the one-time reset the owner can issue when a learner has lost both password and code.',
+      'The one-time reset the owner can issue by hand when a learner can no longer receive email at the address on their account.',
     fields: [
       {
         key: 'recovery.resetLinkMinutes',
