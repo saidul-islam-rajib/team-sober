@@ -251,8 +251,8 @@ ${PROJECTS_HEAD}
   }`;
 
   return layout({
-    title: `Projects — ${s.authorName}`,
-    description: `Projects built by ${s.authorName}${s.authorRole ? `, ${s.authorRole}` : ''}.`,
+    title: `Projects — ${s.siteTitle}`,
+    description: `Projects built by ${s.siteTitle}${s.authorRole ? `, ${s.authorRole}` : ''}.`,
     body,
     path: '/projects',
     image: groups[0]?.projects[0]?.coverUrl,
@@ -291,7 +291,7 @@ export function projectDetailPage(
     keywords: [...project.keywords, ...project.tags, ...project.topics].join(
       ', ',
     ),
-    author: { '@type': 'Person', name: s.authorName },
+    author: { '@type': 'Person', name: s.siteTitle },
     dateCreated: project.startDate || undefined,
   };
 
@@ -349,9 +349,9 @@ ${PROJECTS_HEAD}
   }`;
 
   return layout({
-    title: `${project.title} — ${s.authorName}`,
+    title: `${project.title} — ${s.siteTitle}`,
     description:
-      project.description || `${project.title}, a project by ${s.authorName}.`,
+      project.description || `${project.title}, a project by ${s.siteTitle}.`,
     body: body + LIGHTBOX_SCRIPT,
     path: `/projects/${project.slug}`,
     image: project.coverUrl,
@@ -389,8 +389,8 @@ ${PROJECTS_HEAD}
   }`;
 
   return layout({
-    title: `${term} — ${label} — ${s.authorName}`,
-    description: `Projects by ${s.authorName} involving ${term}.`,
+    title: `${term} — ${label} — ${s.siteTitle}`,
+    description: `Projects by ${s.siteTitle} involving ${term}.`,
     body,
     path: `/${taxonomy}/${opts.slug}`,
     image: projects[0]?.coverUrl,

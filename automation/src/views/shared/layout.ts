@@ -204,7 +204,7 @@ export function layout({
 ${noindex ? '<meta name="robots" content="noindex, nofollow" />' : '<meta name="robots" content="index, follow" />'}
 
 <!-- Open Graph: Facebook, LinkedIn, WhatsApp, Slack -->
-<meta property="og:site_name" content="${esc(s.authorName)}" />
+  <meta property="og:site_name" content="${esc(s.siteTitle)}" />
 <meta property="og:type" content="${esc(ogType)}" />
 <meta property="og:title" content="${esc(title)}" />
 <meta property="og:description" content="${esc(summary)}" />
@@ -240,7 +240,7 @@ ${
 ${
   publishedAt
     ? `<meta property="article:published_time" content="${esc(publishedAt)}" />
-<meta property="article:author" content="${esc(s.authorName)}" />`
+  <meta property="article:author" content="${esc(s.siteTitle)}" />`
     : ''
 }
 
@@ -516,7 +516,7 @@ ${head}
       <label for="nav-toggle" class="nav-burger" aria-hidden="true">
         <span></span><span></span><span></span>
       </label>
-      <a class="wordmark" href="/">${avatarMark(s.avatarUrl, s.authorName)} ${esc(s.authorName)}</a>
+      <a class="wordmark" href="/">${footerLogo()} <span class="site-title">${esc(s.siteTitle)}</span></a>
       <label for="nav-toggle" class="nav-overlay" aria-hidden="true"></label>
       <nav class="nav" id="site-nav">
         <div class="nav-head">
