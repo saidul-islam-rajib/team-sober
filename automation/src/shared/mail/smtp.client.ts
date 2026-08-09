@@ -5,7 +5,6 @@ import { MailMessage } from './mail.message';
 
 const CRLF = '\r\n';
 
-/** Port 465 is TLS from the first byte; 587 and 25 negotiate it with STARTTLS. */
 const IMPLICIT_TLS_PORT = 465;
 
 export interface SmtpReply {
@@ -13,21 +12,11 @@ export interface SmtpReply {
   text: string;
 }
 
-/**
- * Pull one complete reply off the front of the buffer.
- *
- * An SMTP reply is one or more lines: every line but the last reads `250-…`,
- * and the closing line reads `250 …`. Splitting on CRLF alone is not enough —
- * a multi-line EHLO response would be read as several replies and push the
- * conversation several steps too far, so the greeting for one command ends up
- * being matched against the next.
- */
 export function takeReply(
   buffer: string,
 ): { reply: SmtpReply; rest: string } | null {
   const lines = buffer.split(CRLF);
 
-  // The final element is whatever followed the last CRLF, so it is incomplete.
   for (let at = 0; at < lines.length - 1; at += 1) {
     if (!/^\d{3}(?: |$)/.test(lines[at])) continue;
 
@@ -54,20 +43,14 @@ function base64(value: string): string {
   return Buffer.from(value, 'utf8').toString('base64');
 }
 
-/** `Team Sober <hi@team-sober.com>` → `hi@team-sober.com`. */
 export function senderAddress(from: string): string {
   return from.replace(/.*<|>.*/g, '').trim();
 }
 
-/** Non-ASCII header values have to be encoded rather than sent raw. */
 function encodeHeader(value: string): string {
   return /^[\x20-\x7E]*$/.test(value) ? value : `=?UTF-8?B?${base64(value)}?=`;
 }
 
-/**
- * A line consisting of a single dot ends the DATA block, so any body line that
- * genuinely starts with a dot gets a second one added; the server strips it.
- */
 export function dotStuff(body: string): string {
   return body
     .split(CRLF)
@@ -100,10 +83,6 @@ export function buildMime(message: MailMessage, from: string): string {
   ].join(CRLF);
 }
 
-/**
- * One request/response conversation over a socket that may be swapped for a
- * TLS-wrapped copy of itself part way through.
- */
 class SmtpSession {
   private stream: NodeJS.ReadWriteStream;
   private buffer = '';
@@ -190,7 +169,6 @@ class SmtpSession {
     return this.expect(accepted, step);
   }
 
-  /** Swap the plaintext socket for a TLS one and keep reading from that. */
   async upgrade(): Promise<void> {
     this.socket.removeAllListeners('data');
 
@@ -222,10 +200,6 @@ class SmtpSession {
   }
 }
 
-/**
- * Deliver one message. Resolves when the server has accepted the body, rejects
- * with the server's own wording when it has not.
- */
 export async function smtpSend(message: MailMessage): Promise<void> {
   const implicitTls = mailConfig.port === IMPLICIT_TLS_PORT;
 

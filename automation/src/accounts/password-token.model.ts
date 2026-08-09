@@ -1,7 +1,3 @@
-/**
- * Why a link was issued. `Setup` finishes a registration and verifies the
- * address at the same time; `Reset` replaces a password somebody already had.
- */
 export enum TokenPurpose {
   Setup = 'SETUP',
   Reset = 'RESET',
@@ -10,7 +6,6 @@ export enum TokenPurpose {
 export interface PasswordToken {
   id: string;
   accountId: string;
-  /** sha256 of the token. The token itself only ever exists in the email. */
   tokenHash: string;
   purpose: TokenPurpose;
   issuedAt: string;

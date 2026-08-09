@@ -101,10 +101,6 @@ export class AccountsController {
     return `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`;
   }
 
-  /**
-   * Absolute base for emailed links. The configured site URL wins, because a
-   * `Host` header is attacker-controlled and this ends up in an email.
-   */
   private baseUrl(req: Request): string {
     const configured = (getSettings().siteUrl || '').replace(/\/+$/, '');
     if (configured) return configured;
@@ -121,18 +117,11 @@ export class AccountsController {
   private passwordLink(req: Request, token: string, next?: string): string {
     const base = `${this.baseUrl(req)}${AccountRoutes.setPassword.template}?token=${token}`;
 
-    // Carried through the email so "sign in to claim your certificate" still
-    // lands where it was going. Re-checked as relative when it comes back.
     return next && next.startsWith('/') && !next.startsWith('//')
       ? `${base}&next=${encodeURIComponent(next)}`
       : base;
   }
 
-  /**
-   * Issue a link and email it. Returns the link only when there is no SMTP
-   * server and we are not in production, so a developer is not locked out of
-   * their own sign-up flow.
-   */
   private async sendPasswordLink(
     req: Request,
     account: Account,
@@ -279,8 +268,6 @@ export class AccountsController {
     const email = normaliseEmail(body.email);
     const account = this.accounts.beginRegistration(body);
 
-    // A null account means the address already has a working password. Say
-    // exactly what we would have said anyway, and send nothing.
     const outcome = account
       ? await this.sendPasswordLink(req, account, TokenPurpose.Setup, body.next)
       : { failed: false };

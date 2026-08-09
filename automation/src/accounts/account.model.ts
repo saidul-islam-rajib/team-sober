@@ -5,17 +5,11 @@ export interface Account {
   id: string;
   name: string;
   email: string;
-  /** Empty until the learner follows their setup link and chooses a password. */
   secret: string;
   status: AccountStatus;
-  /**
-   * Bumped whenever the password changes, which retires every session this
-   * app issued for the account. Carried in the session cookie as `sv`.
-   */
   tokenVersion: number;
   createdAt: string;
   updatedAt?: string;
-  /** Which application the record was first created by. */
   origin?: string;
 }
 

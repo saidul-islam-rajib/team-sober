@@ -13,7 +13,6 @@ import {
 
 const TOKEN_BYTES = 32;
 
-/** Anything shorter than this cannot be one of ours, so do not bother looking. */
 const MIN_TOKEN_LENGTH = 20;
 
 export type TokenLookup =
@@ -29,18 +28,10 @@ export class PasswordTokenService {
     label: 'password link(s)',
   });
 
-  /**
-   * Tokens are stored hashed for the same reason passwords are: a leaked
-   * `password-tokens.json` should not let anybody walk into an account.
-   */
   private hash(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  /**
-   * Mint a single-use link and retire any earlier one of the same purpose, so
-   * asking twice always leaves exactly one working link — the newest.
-   */
   issue(
     accountId: string,
     purpose: TokenPurpose,
@@ -114,7 +105,6 @@ export class PasswordTokenService {
     if (changed) this.store.persist();
   }
 
-  /** Spent and expired links are of no further use — drop them. */
   prune(now = Date.now()): number {
     const keep = this.store
       .all()

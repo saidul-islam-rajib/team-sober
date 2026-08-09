@@ -3,20 +3,6 @@ import { promisify } from 'util';
 import { RecoveryPolicy } from '../shared/config/policies';
 import { RECOVERY_ALPHABET } from './account.constants';
 
-/**
- * Password and recovery-code hashing.
- *
- * The stored form is `scrypt$N$r$p$salt$hash`, byte-for-byte the encoding
- * Bachelor Point uses, so a password set in either application verifies in the
- * other. That matters as soon as the two share accounts: whichever app the
- * learner happened to set their password in, the other has to be able to check
- * it.
- *
- * The older `salt:hash` hex pairs this project wrote before the two were
- * aligned still verify, and are quietly re-hashed into the current format the
- * next time the password is used.
- */
-
 const deriveKey = promisify(scrypt) as (
   password: string,
   salt: Buffer | string,
@@ -32,18 +18,12 @@ const PARALLELISM = 1;
 const KEY_LENGTH = 64;
 const SALT_BYTES = 16;
 
-/** The legacy encoding: two hex fields separated by a colon. */
 const LEGACY = /^[a-f0-9]{32}:[a-f0-9]{128}$/i;
 
 function maxMemFor(cost: number, blockSize: number): number {
   return 256 * cost * blockSize;
 }
 
-/**
- * Normalising means two visually identical passwords typed on different
- * keyboards hash the same. Both applications do it, so both must keep doing
- * it — dropping it would invalidate every stored hash.
- */
 function prepare(value: string): string {
   return value.normalize('NFKC');
 }
@@ -91,7 +71,6 @@ export async function sealMatches(
 ): Promise<boolean> {
   if (!sealed) return false;
 
-  // The old form hashed the raw string, without normalising it first.
   if (LEGACY.test(sealed)) return legacyMatches(sealed, value);
 
   const parts = sealed.split('$');
@@ -111,7 +90,6 @@ export async function sealMatches(
     return false;
   }
 
-  // N must be a power of two greater than one, or scrypt throws.
   if (cost <= 1 || (cost & (cost - 1)) !== 0) return false;
   if (blockSize < 1 || parallelism < 1) return false;
 
@@ -133,10 +111,6 @@ export async function sealMatches(
   }
 }
 
-/**
- * Whether a stored hash is weaker than what we write today. Checked after a
- * successful sign-in, when the plaintext is in hand and can be re-hashed.
- */
 export function needsRehash(sealed: string): boolean {
   if (!sealed) return true;
   if (LEGACY.test(sealed)) return true;

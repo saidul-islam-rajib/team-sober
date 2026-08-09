@@ -1,30 +1,9 @@
 import { createHash, createHmac, timingSafeEqual } from 'crypto';
 
-/**
- * The cross-application session.
- *
- * Team Sober and Bachelor Point run as separate applications with separate
- * stores, but both are served from `*.team-sober.com`. A cookie set on the
- * parent domain is therefore visible to both, and if both sign it with the
- * same `AUTH_SECRET` then either can verify a session the other minted. That
- * is the whole of the single sign-on: no redirects, no authorisation codes,
- * and no service that has to be reachable for the other one to log anybody in.
- *
- * Two rules make it safe to consume a token you did not mint:
- *
- *   - `sub` is derived from the address rather than allocated, so the same
- *     person has the same identifier everywhere without the apps ever having
- *     to agree on one.
- *   - `sv` is the *issuer's* token version. Only the issuer holds the record
- *     it has to be checked against, so a consumer ignores it and re-checks the
- *     account against its own copy instead.
- */
-
 export const IDENTITY_COOKIE = 'ts_identity';
 
 export const IDENTITY_ISSUER = 'team-sober';
 
-/** Namespaced so a hash of an address here cannot be replayed anywhere else. */
 const SUBJECT_NAMESPACE = 'team-sober.com/identity/v1';
 
 const DEV_FALLBACK_SECRET =
@@ -33,13 +12,10 @@ const DEV_FALLBACK_SECRET =
 const MIN_SECRET_LENGTH = 32;
 
 export interface IdentityClaims {
-  /** Stable across every app, derived from the email address. */
   sub: string;
   email: string;
   name: string;
-  /** Which application minted this token. */
   iss: string;
-  /** The issuer's token version, for revoking its own sessions. */
   sv: number;
   iat: number;
   exp: number;
@@ -58,19 +34,10 @@ export function identitySecretConfigured(): boolean {
   return identitySecret() !== DEV_FALLBACK_SECRET;
 }
 
-/**
- * The `Domain` for the session cookie — `.team-sober.com` in production, so
- * both apps see it. Unset locally, which makes the cookie host-only and keeps
- * a development session from leaking between ports.
- */
 export function identityCookieDomain(): string {
   return (process.env.SSO_COOKIE_DOMAIN ?? '').trim();
 }
 
-/**
- * The same address always yields the same subject, in any app, with no shared
- * table to look it up in. Shaped like a UUID so it reads like an id.
- */
 export function identityId(email: string): string {
   const digest = createHash('sha256')
     .update(`${SUBJECT_NAMESPACE}:${email.trim().toLowerCase()}`)

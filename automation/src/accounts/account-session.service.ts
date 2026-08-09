@@ -44,7 +44,6 @@ export class AccountSessionService {
     };
   }
 
-  /** Mint a session for one of our own accounts and put it on the response. */
   start(req: Request, res: Response, account: Account): void {
     const token = issueIdentity({
       email: account.email,
@@ -63,18 +62,12 @@ export class AccountSessionService {
     res.clearCookie(IDENTITY_COOKIE, this.options(req));
   }
 
-  /** The claims on the request, if it carries a session any of our apps signed. */
   claims(req: Request): IdentityClaims | null {
     const cookies = (req.cookies ?? {}) as Record<string, string>;
 
     return readIdentity(cookies[IDENTITY_COOKIE]);
   }
 
-  /**
-   * Whether the session was minted here. Ours can be checked against the local
-   * token version; another app's cannot, because we do not hold the record
-   * that number counts against.
-   */
   isOurs(claims: IdentityClaims): boolean {
     return claims.iss === IDENTITY_ISSUER;
   }

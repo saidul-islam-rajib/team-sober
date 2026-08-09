@@ -12,10 +12,6 @@ import { AppModule } from '../../src/app.module';
 
 export const PASSWORD = 'test-password';
 
-/**
- * Sessions are signed with this in tests, so a suite can mint a token as if it
- * were one of the sibling applications and check it is honoured here.
- */
 export const AUTH_SECRET = 'an-end-to-end-test-secret-of-sufficient-length';
 
 export const LEARNER_PASSWORD = 'correct-horse-battery';
@@ -104,10 +100,6 @@ export function useTestApp(): TestContext {
   return ctx;
 }
 
-/**
- * The dev-mode set-password link, which the check-your-email page prints
- * whenever no SMTP server is configured — which is always, in tests.
- */
 export function setupLinkFrom(html: string): string {
   return (
     /id="setup-link"[^>]*>([^<]+)</
@@ -123,10 +115,6 @@ export function sessionCookieFrom(res: request.Response): string {
   return cookies.find((cookie) => cookie.startsWith(SESSION_COOKIE)) ?? '';
 }
 
-/**
- * Register a learner, follow the link that would have been emailed, choose a
- * password, and hand back the session cookie — the whole sign-up in one call.
- */
 export async function learnerSession(
   ctx: TestContext,
   overrides: { name?: string; email?: string; password?: string } = {},

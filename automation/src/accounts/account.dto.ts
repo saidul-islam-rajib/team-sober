@@ -10,7 +10,6 @@ export interface CredentialsInput {
   password?: string;
 }
 
-/** Choosing a password from an emailed link, for setup and for reset alike. */
 export interface SetPasswordInput {
   token?: string;
   password?: string;
@@ -20,7 +19,6 @@ export interface ForgotInput {
   email?: string;
 }
 
-/** The owner-issued reset code, for learners who can no longer receive email. */
 export interface RecoveryInput {
   email?: string;
   code?: string;

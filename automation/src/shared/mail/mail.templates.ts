@@ -12,10 +12,6 @@ function siteName(): string {
   return getSettings().siteTitle || 'Team Sober';
 }
 
-/**
- * Inline styles only, and a plain-text part alongside: mail clients strip
- * stylesheets, and some show the text part exclusively.
- */
 function wrap(heading: string, lede: string, body: SafeHtml): string {
   return toHtml(html`<!doctype html>
     <html>

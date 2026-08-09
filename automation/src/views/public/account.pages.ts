@@ -195,17 +195,11 @@ export function registerPage(state: FormState = {}): string {
 
 export interface CheckEmailState {
   email: string;
-  /** Set when SMTP is off and we are not in production, so the link is shown. */
   devLink?: string;
   failed?: boolean;
   reset?: boolean;
 }
 
-/**
- * Shown after registering and after asking for a reset. Deliberately identical
- * whether or not the address turned out to have an account — anything else
- * tells a stranger who is registered here.
- */
 export function checkEmailPage({
   email,
   devLink,
@@ -313,7 +307,6 @@ export interface SetPasswordState {
   name?: string;
   purpose?: TokenPurpose;
   error?: string;
-  /** False once the link itself is spent, expired or unrecognised. */
   valid: boolean;
   next?: string;
 }

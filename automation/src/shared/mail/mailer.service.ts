@@ -9,7 +9,6 @@ const OUTBOX_LIMIT = 50;
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
 
-  /** Everything the app has tried to send, newest last. Development aid. */
   private readonly outbox: MailMessage[] = [];
 
   get configured(): boolean {

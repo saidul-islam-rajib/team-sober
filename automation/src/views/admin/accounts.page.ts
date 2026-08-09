@@ -27,10 +27,6 @@ import { adminNav, layout } from '../shared/layout';
 
 const NOTE_MAX = 300;
 
-/**
- * An account with no secret has either never followed its setup link, or was
- * created from a session on one of the sibling apps and has no local password.
- */
 function passwordState(account: Account): string {
   if (account.secret) return `Set ${formatDay(account.updatedAt)}`;
 

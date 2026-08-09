@@ -1,11 +1,3 @@
-/**
- * SMTP settings, read from the environment rather than the admin config so a
- * password never lands in `config.json`.
- *
- * The variable names match the Bachelor Point (Mess) project deliberately: both
- * apps are operated by the same person against the same mailbox, so one block
- * of `.env` configures either.
- */
 export const mailConfig = {
   get host(): string {
     return (process.env.SMTP_HOST ?? '').trim();
@@ -34,10 +26,6 @@ export const mailConfig = {
   },
 };
 
-/**
- * Without a host and a From address there is nowhere to send and nothing to
- * send as, so the mailer stays in preview mode and links are logged instead.
- */
 export function isMailConfigured(): boolean {
   return Boolean(mailConfig.host && mailConfig.from);
 }

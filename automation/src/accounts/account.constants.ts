@@ -2,10 +2,6 @@ export const MAX_NAME_LENGTH = 80;
 
 export const MAX_EMAIL_LENGTH = 120;
 
-/**
- * Hashing is deliberately slow, so an unbounded password is a way to make the
- * server do unbounded work. Matches the Bachelor Point limit.
- */
 export const MAX_PASSWORD_LENGTH = 200;
 
 export const MAX_COURSE_LENGTH = 120;

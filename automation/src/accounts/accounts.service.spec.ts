@@ -58,7 +58,6 @@ describe('account.model', () => {
   });
 
   it('no longer asks for a password when registering', () => {
-    // The password is chosen from the emailed link instead.
     expect(registrationProblem({ name: 'A', email: 'a@b.com' })).toBe('');
   });
 });
@@ -166,8 +165,6 @@ describe('AccountsService', () => {
     it('declines to say anything once the address has a working password', async () => {
       await registered();
 
-      // null means "send nothing" — the caller shows the same page regardless,
-      // so a stranger cannot learn which addresses are registered.
       expect(begin()).toBeNull();
       expect(service.count).toBe(1);
     });

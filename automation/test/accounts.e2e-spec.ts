@@ -45,7 +45,6 @@ const signIn = (password: string, email = EMAIL) =>
     .type('form')
     .send({ email, password });
 
-/** Register, follow the emailed link and choose a password. */
 const onboard = async (
   extra: Record<string, string> = {},
 ): Promise<{ link: string; session: string }> => {
@@ -111,7 +110,6 @@ describe('registering', () => {
 
     const again = await register().expect(200);
 
-    // No hint that this address is taken, and no new link issued.
     expect(again.text).toContain('Check your email');
     expect(again.text).not.toContain('already');
     expect(linkFrom(again.text)).toBe('');
@@ -123,7 +121,6 @@ describe('registering', () => {
 
     expect(second).not.toBe(first);
 
-    // The superseded link is dead; only the newest works.
     await request(ctx.server)
       .get(pathOf(first))
       .expect(200)
@@ -203,7 +200,6 @@ describe('choosing a password from the link', () => {
       .expect(200)
       .expect((res) => expect(res.text).toContain('already been used'));
 
-    // The password from the first use is the one that still works.
     await signIn(PASSWORD).expect(302);
   });
 
@@ -400,7 +396,6 @@ describe('forgotten passwords', () => {
       .send({ token, password: 'a-brand-new-password' })
       .expect(302);
 
-    // The cookie from before the reset carries the old token version.
     await request(ctx.server)
       .get('/account')
       .set('Cookie', session)
@@ -474,7 +469,6 @@ describe('single sign-on across the Team Sober services', () => {
       .set('Cookie', admin)
       .expect(200);
 
-    // One row, not one per visit.
     expect(listed.text.match(/href="\/admin\/accounts\/[^"]+"/g)).toHaveLength(
       1,
     );

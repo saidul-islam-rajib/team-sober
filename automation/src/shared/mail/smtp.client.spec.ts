@@ -16,9 +16,6 @@ describe('takeReply', () => {
   });
 
   it('treats a multi-line reply as one reply', () => {
-    // The bug this guards: splitting on CRLF alone reads this as three
-    // replies, so the next command is matched against a leftover line and the
-    // whole conversation slips a step.
     const buffer = [
       '250-smtp.example.com at your service',
       '250-SIZE 35882577',
