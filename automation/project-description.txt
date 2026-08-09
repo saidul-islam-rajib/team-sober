@@ -1,4 +1,4 @@
-AWS DEMO PROJECT — copy for the project edit page
+TeamSober — copy for the project edit page
 =================================================
 Paste each block into the matching field at /admin/projects.
 Word limits are enforced by the app: short 100, detailed 200.
@@ -11,49 +11,28 @@ AWS Demo Project
 
 SHORT DESCRIPTION  (field: "Short description" — 82 words)
 ----------------------------------------------------------
-A personal blog and project portfolio built with NestJS and TypeScript,
-deployed to an AWS EC2 instance by a Jenkins pipeline that runs on every
-push. Docker builds the image, the tests run inside that image, and a
-named volume keeps posts, projects and uploaded photos alive when the
-container is replaced. It includes a Markdown editor with drafts and
-scheduling, a searchable project portfolio, an About page with a photo
-gallery, and an image pipeline that resizes on demand and builds social
-preview cards.
+- Full-stack blog and portfolio platform built with NestJS and TypeScript.
+- Server-rendered publishing with Markdown posts, drafts, and scheduling.
+- Searchable projects, About page, image optimization, and SEO features.
+- CI/CD pipeline deploys to AWS EC2 with Docker, Jenkins, and blue/green releases.
 
 
 DETAILED DESCRIPTION  (field: "Detailed description" — 189 words, Markdown)
 ---------------------------------------------------------------------------
-This repository is the blog you are reading, together with the pipeline
-that puts it on the internet.
+This project is a complete blog and portfolio platform, and the deployment pipeline is part of the product itself.
 
-**The application.** NestJS renders every page on the server with no view
-engine — the HTML lives in TypeScript template literals. Posts, projects,
-About content and settings are stored as JSON written atomically to a
-mounted Docker volume, so nothing is lost when a deploy replaces the
-running container.
+**The application.** NestJS renders every page on the server with no separate frontend framework, using TypeScript template literals to generate HTML. Posts, projects, About content, and settings are stored as JSON written atomically to a mounted Docker volume, so content survives container replacements and deployments.
 
-**The pipeline.** A declarative Jenkins pipeline checks out the code,
-builds a Docker image, runs the test suite inside that image, deploys to
-EC2, and verifies the container answers before it reports success. It also
-prunes old image tags, because an EC2 root volume fills faster than you
-expect.
+**The delivery pipeline.** A declarative Jenkins workflow checks out the code, builds a Docker image, runs the test suite inside that image, deploys to AWS EC2, and verifies the new container before marking the release successful. The setup also handles image cleanup and blue/green switching to keep releases reliable in a real cloud environment.
 
-**What it does.** Markdown posts with drafts, backdating and future
-scheduling; a portfolio whose technologies, topics, keywords and tags are
-all clickable; an About page with a timeline and photo gallery; live
-search; Open Graph previews built at 1200x630; a sitemap and structured
-data.
+**What it offers.** Markdown posts with drafts, backdating, and future scheduling; a searchable portfolio with tag-based navigation; an About page with a timeline and photo gallery; live search; Open Graph previews; sitemap and structured data; and on-demand image resizing for faster, more polished pages.
 
-**Images.** Uploads are resized on demand into cached WebP variants with
-EXIF rotation applied, and pages ship gzipped with skeleton placeholders
-while photos arrive.
-
-Over 300 tests cover it. Most of them exist because something broke first.
+It is designed as both a content platform and a practical demonstration of shipping software end to end.
 
 
 TECHNOLOGIES  (comma separated — lowercased automatically)
 -----------------------------------------------------------
-nestjs, typescript, node.js, docker, jenkins, aws ec2, express, sharp, jest, markdown
+nestjs, typescript, node.js, docker, jenkins, aws ec2, express, sharp, jest, markdown, caddy
 
 
 TOPICS

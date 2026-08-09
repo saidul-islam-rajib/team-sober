@@ -615,9 +615,9 @@ export function aboutPage(
 ${ABOUT_CSS}
 ${IMAGE_SKELETON}
   <header class="about-hero">
-    ${avatarMark(s.avatarUrl, s.authorName, 'about-avatar')}
+    ${avatarMark(s.avatarUrl, s.siteTitle, 'about-avatar')}
     <div>
-      <h1>${esc(about.headline || s.authorName)}</h1>
+      <h1>${esc(about.headline || s.siteTitle)}</h1>
       <div class="role">${esc(s.authorRole)}</div>
       ${
         about.socials.length
@@ -642,7 +642,7 @@ ${IMAGE_SKELETON}
       <p style="margin-top:1.25rem"><a class="btn" href="/admin/about">Add your story</a></p>
     </div>`
         : `<div class="empty">
-      <p>More about ${esc(s.authorName)} is on the way.</p>
+      <p>More about ${esc(s.siteTitle)} is on the way.</p>
       <p style="margin-top:1.25rem"><a class="btn btn-ghost" href="/">Read the blog</a> <a class="btn btn-ghost" href="/projects">See the projects</a></p>
     </div>`
       : `${
@@ -657,8 +657,8 @@ ${IMAGE_SKELETON}
 ${GALLERY_JS}`;
 
   return layout({
-    title: `About — ${s.authorName}`,
-    description: `About ${s.authorName}${s.authorRole ? `, ${s.authorRole}` : ''}.`,
+    title: `About — ${s.siteTitle}`,
+    description: `About ${s.siteTitle}${s.authorRole ? `, ${s.authorRole}` : ''}.`,
     body,
     path: '/about',
   });

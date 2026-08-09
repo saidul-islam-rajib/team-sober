@@ -10,7 +10,7 @@ describe('projects and SEO', () => {
       .set('Cookie', cookie)
       .type('form')
       .send({
-        title: 'AWS Demo Project',
+        title: 'TeamSober',
         description: 'A blog deployed by Jenkins',
         repoUrl: 'https://github.com/saidul-islam-rajib/AWS_Demo_Project',
         demoUrl: 'https://example.com',
@@ -29,7 +29,7 @@ describe('projects and SEO', () => {
       .get('/projects')
       .expect(200)
       .expect((res) => {
-        expect(res.text).toContain('AWS Demo Project');
+        expect(res.text).toContain('TeamSober');
         expect(res.text).toContain('Bachelor Mess Manager');
         expect(res.text).toContain('opengraph.githubassets.com');
       }));
@@ -48,7 +48,7 @@ describe('projects and SEO', () => {
       .get('/projects')
       .expect(200)
       .expect((res) => {
-        expect(res.text).toContain('AWS Demo Project');
+        expect(res.text).toContain('TeamSober');
         expect(res.text).toContain('2026');
         expect(res.text).toContain('Ongoing');
         expect(res.text).toContain('opengraph.githubassets.com');
@@ -103,7 +103,7 @@ describe('projects and SEO', () => {
       .expect(200)
       .expect((res) => {
         expect(res.text).toContain('Old Thing');
-        expect(res.text).not.toContain('>AWS Demo Project</h3>');
+        expect(res.text).not.toContain('>TeamSober</h3>');
       });
 
     await request(server)

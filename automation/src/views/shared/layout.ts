@@ -46,6 +46,16 @@ function scriptTags(refs: AssetRef[] = []): string {
     .join('\n');
 }
 
+export function footerLogo(): string {
+  return `
+    <svg viewBox="0 0 64 64" width="24" height="24" role="img" aria-label="TeamSober logo" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-right:0.5rem;">
+      <rect width="64" height="64" rx="15" fill="#0f172a" />
+      <path d="M48.5 33.5 A17 17 0 1 1 30.5 15.05" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" />
+      <path d="M36.4 27.6 L36.4 16.4 A11.2 11.2 0 0 1 47.6 27.6 Z" fill="#f59e0b" stroke="#f59e0b" stroke-width="3.2" stroke-linejoin="round" />
+    </svg>
+  `;
+}
+
 export function avatarMark(
   avatarUrl: string,
   name: string,
@@ -194,7 +204,7 @@ export function layout({
 ${noindex ? '<meta name="robots" content="noindex, nofollow" />' : '<meta name="robots" content="index, follow" />'}
 
 <!-- Open Graph: Facebook, LinkedIn, WhatsApp, Slack -->
-<meta property="og:site_name" content="${esc(s.authorName)}" />
+  <meta property="og:site_name" content="${esc(s.siteTitle)}" />
 <meta property="og:type" content="${esc(ogType)}" />
 <meta property="og:title" content="${esc(title)}" />
 <meta property="og:description" content="${esc(summary)}" />
@@ -230,7 +240,7 @@ ${
 ${
   publishedAt
     ? `<meta property="article:published_time" content="${esc(publishedAt)}" />
-<meta property="article:author" content="${esc(s.authorName)}" />`
+  <meta property="article:author" content="${esc(s.siteTitle)}" />`
     : ''
 }
 
@@ -506,7 +516,7 @@ ${head}
       <label for="nav-toggle" class="nav-burger" aria-hidden="true">
         <span></span><span></span><span></span>
       </label>
-      <a class="wordmark" href="/">${avatarMark(s.avatarUrl, s.authorName)} ${esc(s.authorName)}</a>
+      <a class="wordmark" href="/">${footerLogo()} <span class="site-title">${esc(s.siteTitle)}</span></a>
       <label for="nav-toggle" class="nav-overlay" aria-hidden="true"></label>
       <nav class="nav" id="site-nav">
         <div class="nav-head">
@@ -525,6 +535,7 @@ ${body}
   <footer class="site-footer">
     <div class="footer-inner">
       <span>
+        ${footerLogo()}
         © ${new Date().getFullYear()}.
         ${
           s.footerOwner
