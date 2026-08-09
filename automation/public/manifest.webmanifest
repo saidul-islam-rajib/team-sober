@@ -1,0 +1,17 @@
+{
+  "name": "TeamSober",
+  "short_name": "TeamSober",
+  "description": "A polished, mobile-friendly view of posts, tutorials, projects and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

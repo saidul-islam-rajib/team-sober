@@ -20,6 +20,7 @@ async function bootstrap() {
   app.use(compression());
 
   app.use(cookieParser());
+  app.use(express.static(join(process.cwd(), 'public'), { maxAge: 0 }));
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (

@@ -196,10 +196,17 @@ export function layout({
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(summary)}" />
+<meta name="theme-color" content="#0f766e" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="${esc(s.siteTitle)}" />
 <link rel="canonical" href="${esc(canonical)}" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icon.svg" />
 <link rel="alternate" type="application/rss+xml" title="${esc(s.siteTitle)}" href="${esc(absolute('/feed.xml'))}" />
 ${noindex ? '<meta name="robots" content="noindex, nofollow" />' : '<meta name="robots" content="index, follow" />'}
 
@@ -253,13 +260,13 @@ ${styleLinks(styles)}
 ${head}
 <style>
   :root {
-    --bg: #ffffff;
+    --bg: #f5f7fb;
     --surface: #ffffff;
-    --surface-2: #f7f8f8;
-    --border: #e6e6e6;
-    --ink: #161616;
-    --ink-2: #4a4a4a;
-    --ink-3: #757575;
+    --surface-2: #eef2f7;
+    --border: #dfe6ee;
+    --ink: #0f172a;
+    --ink-2: #334155;
+    --ink-3: #64748b;
     --accent: #0f766e;
     --accent-ink: #ffffff;
     --danger: #b42318;
@@ -268,7 +275,9 @@ ${head}
     --serif: "Iowan Old Style", "Palatino Linotype", "Source Serif Pro", Georgia, serif;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif;
     --mono: ui-monospace, SFMono-Regular, "Cascadia Code", Menlo, monospace;
-    --measure: 680px;
+    --measure: 760px;
+    --radius: 20px;
+    --shadow-soft: 0 16px 40px rgba(15, 23, 42, 0.08);
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -287,13 +296,15 @@ ${head}
     }
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body {
-    background: var(--bg);
+    min-height: 100vh;
+    background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--surface-2) 70%, var(--bg)) 100%);
     color: var(--ink-2);
     font-family: var(--sans);
-    line-height: 1.6;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   a { color: inherit; text-decoration: none; }
   img { max-width: 100%; }
@@ -301,14 +312,16 @@ ${head}
   /* ---------- header ---------- */
   .site-header {
     position: sticky; top: 0; z-index: 20;
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
     backdrop-filter: saturate(180%) blur(12px);
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
   }
   .header-inner {
     max-width: 1100px; margin: 0 auto;
-    padding: 0.85rem 1.25rem;
+    padding: 0.8rem clamp(1rem, 2.4vw, 1.45rem);
     display: flex; align-items: center; gap: 1rem;
+    min-height: 68px;
   }
   .wordmark {
     display: flex; align-items: center; gap: 0.6rem;
@@ -323,8 +336,8 @@ ${head}
   }
   .avatar-img { object-fit: cover; padding: 0; }
   /* ---------- navigation ---------- */
-  .nav { margin-left: auto; display: flex; align-items: center; gap: 1.1rem; font-size: 0.9rem; }
-  .nav a { color: var(--ink-3); position: relative; padding: 0.15rem 0; white-space: nowrap; }
+  .nav { margin-left: auto; display: flex; align-items: center; gap: 1rem; font-size: 0.92rem; }
+  .nav a { color: var(--ink-3); position: relative; padding: 0.2rem 0; white-space: nowrap; font-weight: 600; }
   .nav a:hover { color: var(--ink); }
   .nav a.active:not(.btn) { color: var(--ink); font-weight: 600; }
   .nav a.active:not(.btn)::after {
@@ -418,11 +431,12 @@ ${head}
   }
 
   .btn {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    padding: 0.45rem 0.9rem; border-radius: 100px;
-    background: var(--accent); color: var(--accent-ink) !important;
-    font-weight: 600; font-size: 0.86rem; border: 0; cursor: pointer;
-    font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    padding: 0.6rem 1rem; border-radius: 999px;
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 78%, #111827));
+    color: var(--accent-ink) !important;
+    font-weight: 700; font-size: 0.9rem; border: 0; cursor: pointer;
+    font-family: inherit; box-shadow: 0 10px 24px rgba(15, 118, 110, 0.2);
   }
   .btn:hover { opacity: 0.9; }
   .btn-ghost {
@@ -433,9 +447,19 @@ ${head}
   .btn-sm { padding: 0.32rem 0.7rem; font-size: 0.8rem; }
 
   /* ---------- shell ---------- */
-  .shell { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+  .shell { max-width: 1100px; margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.2rem) clamp(1rem, 2.4vw, 1.45rem) 4.5rem; }
   .shell.article { max-width: var(--measure); }
   .shell.admin { max-width: 1100px; }
+  .shell:not(.admin) :where(article, section, .flash, .empty) {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+    padding: 1.15rem;
+  }
+  .shell:not(.admin) :where(article, section, .flash, .empty) + :where(article, section, .flash, .empty) {
+    margin-top: 1rem;
+  }
 
   /* ---------- typography ---------- */
   h1, h2, h3, h4 { color: var(--ink); letter-spacing: -0.022em; line-height: 1.25; }
@@ -493,7 +517,8 @@ ${head}
   footer.site-footer {
     border-top: 1px solid var(--border);
     padding: 2rem 1.25rem 3rem; margin-top: 3rem;
-    color: var(--ink-3); font-size: 0.85rem;
+    color: var(--ink-3); font-size: 0.9rem;
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--surface-2) 60%, transparent));
   }
   .footer-inner {
     max-width: 1100px; margin: 0 auto;
@@ -504,8 +529,11 @@ ${head}
 
   @media (max-width: 640px) {
     .page-title { font-size: 1.6rem; }
+    .header-inner { min-height: 60px; padding: 0.7rem 0.9rem; }
     .nav { gap: 0.75rem; font-size: 0.85rem; }
-    .shell { padding: 1.75rem 1rem 3.5rem; }
+    .shell { padding: 1rem 0.9rem 3.25rem; }
+    .shell:not(.admin) :where(article, section, .flash, .empty) { padding: 1rem; border-radius: 16px; }
+    .footer-inner { flex-direction: column; gap: 0.75rem; }
   }
 </style>
 </head>
@@ -586,6 +614,16 @@ ${body}
   toggle.addEventListener('change', syncLock);
   window.addEventListener('resize', syncLock);
   syncLock();
+})();
+</script>
+<script>
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+      console.warn('Service worker registration failed', error);
+    });
+  });
 })();
 </script>
 ${scriptTags(scripts)}
