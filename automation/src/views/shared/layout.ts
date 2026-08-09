@@ -492,15 +492,27 @@ ${head}
 
   footer.site-footer {
     border-top: 1px solid var(--border);
-    padding: 2rem 1.25rem 3rem; margin-top: 3rem;
-    color: var(--ink-3); font-size: 0.85rem;
+    padding: 2.5rem 1.25rem 3rem; margin-top: 3.25rem;
+    color: var(--ink-3); font-size: 0.9rem;
   }
   .footer-inner {
     max-width: 1100px; margin: 0 auto;
-    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    display: grid; grid-template-columns: 1fr 1fr 260px; gap: 1.25rem; align-items: start;
   }
-  .footer-inner a { color: var(--accent); }
-  .footer-inner a:hover { text-decoration: underline; }
+  .footer-col { min-width: 0; }
+  .footer-brand { display:flex; gap:0.75rem; align-items:center; }
+  .footer-brand .site-title { font-weight:700; color:var(--ink); }
+  .footer-desc { margin-top:0.35rem; color:var(--ink-2); font-size:0.95rem; max-width:40ch; }
+  .footer-links { display:flex; flex-direction:column; gap:0.35rem; }
+  .footer-links a { color:var(--accent); }
+  .footer-meta { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
+  .footer-small { color:var(--ink-3); font-size:0.85rem; }
+  .footer-inner a:hover { text-decoration:underline; }
+
+  @media (max-width: 860px) {
+    .footer-inner { grid-template-columns: 1fr; }
+    .footer-brand .site-title { font-size:1rem; }
+  }
 
   @media (max-width: 640px) {
     .page-title { font-size: 1.6rem; }
@@ -534,27 +546,39 @@ ${body}
 
   <footer class="site-footer">
     <div class="footer-inner">
-      <span>
+      <div class="footer-col footer-brand">
         ${footerLogo()}
-        © ${new Date().getFullYear()}.
+        <div>
+          <div class="site-title">${esc(s.siteTitle)}</div>
+          <div class="footer-desc">${esc(s.siteTagline)}</div>
+        </div>
+      </div>
+
+      <div class="footer-col footer-links">
+        <strong style="margin-bottom:0.35rem;display:block;color:var(--ink)">Useful links</strong>
         ${
-          s.footerOwner
-            ? s.footerOwnerUrl
-              ? `<a href="${esc(s.footerOwnerUrl)}" target="_blank" rel="noopener noreferrer">${esc(s.footerOwner)}</a>.`
-              : `${esc(s.footerOwner)}.`
-            : ''
+          ['/', '/projects', '/about']
+            .map((u) => `<a href="${esc(u)}">${esc(u === '/' ? 'Home' : u.replace('/', '').replace('-', ' ').replace(/\w/, (m)=>m.toUpperCase()))}</a>`)
+            .join('')
         }
-        ${esc(s.footerSuffix)}
-      </span>
-      <span>
-        ${s.footerLinks
-          .map((link) =>
-            link.url.startsWith('/')
-              ? `<a href="${esc(link.url)}">${esc(link.label)}</a>`
-              : `<a href="${esc(link.url)}" target="_blank" rel="noopener noreferrer">${esc(link.label)}</a>`,
-          )
-          .join(' · ')}
-      </span>
+        ${s.footerLinks.map((link) =>
+          link.url.startsWith('/')
+            ? `<a href="${esc(link.url)}">${esc(link.label)}</a>`
+            : `<a href="${esc(link.url)}" target="_blank" rel="noopener noreferrer">${esc(link.label)}</a>`,
+        ).join('')}
+      </div>
+
+      <div class="footer-col">
+        <strong style="display:block;color:var(--ink)">Site</strong>
+        <div class="footer-meta" style="margin-top:0.5rem">
+          <div class="footer-small">© ${new Date().getFullYear()} ${esc(s.footerOwner || s.siteTitle)}</div>
+          <div class="footer-small">${esc(s.footerSuffix)}</div>
+        </div>
+        <div style="margin-top:0.75rem">
+          ${s.githubUser ? `<a href="https://github.com/${esc(s.githubUser)}" target="_blank" rel="noopener noreferrer">GitHub</a>` : ''}
+          <a href="/admin" style="margin-left:0.6rem">Admin</a>
+        </div>
+      </div>
     </div>
   </footer>
 <script>
