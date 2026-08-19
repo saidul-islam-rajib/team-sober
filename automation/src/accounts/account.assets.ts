@@ -4,11 +4,11 @@ export const ACCOUNT_ADMIN_BUNDLE = 'account-admin';
 export const ACCOUNT_PUBLIC_CSS = `
 .account-shell {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
-  gap: 0; margin: 1.5rem auto 4rem; max-width: 60rem;
+  gap: 0; margin: 1.5rem auto 4rem; max-width: 1100px;
   border: 1px solid var(--border); border-radius: 18px;
   background: var(--surface); overflow: hidden;
 }
-.account-shell.solo { grid-template-columns: minmax(0, 1fr); max-width: 32rem; }
+.account-shell.solo { grid-template-columns: minmax(0, 1fr); max-width: 42rem; }
 .account-main { padding: 2.5rem 2.25rem; }
 .account-eyebrow {
   font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;

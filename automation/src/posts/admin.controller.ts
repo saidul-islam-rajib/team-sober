@@ -17,6 +17,8 @@ import type { PostInput } from './post.model';
 import { AuthService } from '../auth/auth.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { LoginThrottleService } from '../auth/login-throttle.service';
+import { AdminsService } from '../admins/admins.service';
+import { normaliseEmail } from '../accounts/account.rules';
 import {
   dashboardPage,
   editorPage,
@@ -34,6 +36,7 @@ export class AdminController {
     private readonly posts: PostsService,
     private readonly auth: AuthService,
     private readonly throttle: LoginThrottleService,
+    private readonly admins: AdminsService,
   ) {}
 
   @Get('login')
@@ -43,7 +46,7 @@ export class AdminController {
     @Query('error') error?: string,
     @Query('locked') locked?: string,
   ): string {
-    if (!this.auth.configured) {
+    if (!this.auth.configured && this.admins.count === 0) {
       return loginPage(
         undefined,
         'ADMIN_PASSWORD is not set on the server, so sign-in is disabled.',
@@ -65,11 +68,12 @@ export class AdminController {
   }
 
   @HttpPost('login')
-  login(
+  async login(
+    @Body('email') email: string | undefined,
     @Body('password') password: string,
     @Req() req: Request,
     @Res() res: Response,
-  ): void {
+  ): Promise<void> {
     const client = clientKey(req);
 
     if (this.throttle.blocked(client)) {
@@ -77,7 +81,12 @@ export class AdminController {
       return;
     }
 
-    if (!this.auth.verifyPassword(password ?? '')) {
+    const address = normaliseEmail(email);
+    const ok = address
+      ? Boolean(await this.admins.authenticate({ email: address, password }))
+      : this.auth.verifyPassword(password ?? '');
+
+    if (!ok) {
       const justLocked = this.throttle.recordFailure(client);
       res.redirect(justLocked ? '/login?locked=1' : '/login?error=1');
       return;

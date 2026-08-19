@@ -18,6 +18,7 @@ import {
   tutorialsAdminPage,
 } from './admin/tutorials.page';
 import { accountDetailPage, accountsAdminPage } from './admin/accounts.page';
+import { adminDetailPage, adminsPage } from './admin/admins.page';
 import {
   accountPage,
   checkEmailPage,
@@ -26,6 +27,7 @@ import {
   setPasswordPage,
 } from './public/account.pages';
 import { Account, AccountStatus } from '../accounts/account.model';
+import { Admin } from '../admins/admin.model';
 import { EMPTY_ABOUT } from '../about/about.model';
 import { DEFAULT_SETTINGS } from '../settings/settings.model';
 import { Post } from '../posts/post.model';
@@ -133,6 +135,14 @@ const account: Account = {
   origin: 'team-sober',
 };
 
+const admin: Admin = {
+  id: 'admin-1',
+  email: 'owner@example.com',
+  secret: 'scrypt$16384$8$1$c2FsdA==$ZGlnZXN0',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
 const pages: [string, () => string][] = [
   [
     'home',
@@ -233,7 +243,6 @@ const pages: [string, () => string][] = [
     () =>
       checkEmailPage({
         email: account.email,
-        devLink: 'http://localhost:3000/account/set-password?token=abc',
       }),
   ],
   [
@@ -266,6 +275,8 @@ const pages: [string, () => string][] = [
         },
       }),
   ],
+  ['admins', () => adminsPage({ admins: [admin] })],
+  ['admin detail', () => adminDetailPage({ admin })],
 ];
 
 function inlineScripts(html: string): string[] {

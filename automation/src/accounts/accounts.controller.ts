@@ -127,7 +127,7 @@ export class AccountsController {
     account: Account,
     purpose: TokenPurpose,
     next?: string,
-  ): Promise<{ failed: boolean; devLink?: string }> {
+  ): Promise<{ failed: boolean }> {
     const { token } = this.tokens.issue(
       account.id,
       purpose,
@@ -145,13 +145,7 @@ export class AccountsController {
       to: account.email,
     });
 
-    const showLink =
-      !this.mailer.configured && process.env.NODE_ENV !== 'production';
-
-    return {
-      failed: !delivery.ok,
-      ...(showLink ? { devLink: link } : {}),
-    };
+    return { failed: !delivery.ok };
   }
 
   private homePage(

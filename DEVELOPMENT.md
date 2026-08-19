@@ -180,17 +180,19 @@ block of `.env` configures either.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SMTP_HOST` | — | Unset keeps the mailer in preview mode: nothing is sent, and the link is logged instead. |
+| `SMTP_HOST` | — | Unset keeps the mailer in preview mode: nothing is sent, and the link is logged to the server console instead. |
 | `SMTP_PORT` | `587` | `465` is treated as implicit TLS; anything else negotiates STARTTLS. |
 | `SMTP_USER` | — | Unset skips authentication entirely. |
 | `SMTP_PASSWORD` | — | For Gmail this is a 16-character app password, not the account password. |
 | `SMTP_FROM` | — | e.g. `Team Sober <admin@team-sober.com>`. Required, along with `SMTP_HOST`, before anything is sent. |
 | `SMTP_TIMEOUT_MS` | `15000` | How long to wait on the conversation before giving up. |
 
-**In development you do not need SMTP.** With no `SMTP_HOST` set and
-`NODE_ENV` not `production`, the "check your email" page prints the link
-directly, so the whole sign-up flow is walkable offline. That shortcut is
-switched off in production.
+**In development you do not need SMTP.** With no `SMTP_HOST` set, nothing is
+sent and the link is written to the server console instead
+(`this.logger.debug` in [`mailer.service.ts`](automation/src/shared/mail/mailer.service.ts)),
+so the whole sign-up flow is walkable offline by copying the link out of the
+terminal running `npm run start`/`docker logs`. The "check your email" page
+itself never displays the link, in development or production.
 
 A clean-slate local run, writing to a temporary data folder on a spare port:
 
@@ -252,11 +254,17 @@ session on `localhost:3000` does not leak to another app on `localhost:3001`.
 
 ## Learner accounts vs the admin password
 
-Two separate things — do not confuse them:
+Three separate things — do not confuse them:
 
-- **Admin password** (`/login`) — the single site-owner login, controlled by the
-  `ADMIN_PASSWORD` environment variable. No self-service recovery; you change it
-  by changing the variable.
+- **Site owner password** (`/login`) — the single shared login, controlled by
+  the `ADMIN_PASSWORD` environment variable. No self-service recovery; you
+  change it by changing the variable.
+- **Admin accounts** (`/login`, with an email) — individual email + password
+  logins for people who administer the site, managed from **Admin → Admins**
+  (`/admin/admins`) by anyone already signed in. Unlike the site owner
+  password, these can be listed, added, have their password reset, or have
+  their email changed without touching environment variables or restarting
+  the server. See [`admins.service.ts`](automation/src/admins/admins.service.ts).
 - **Learner accounts** (`/account`) — visitors register with a name and an
   email address only. A one-time link is emailed to them; following it is both
   how they choose a password and how the address is proved, so an account

@@ -9,6 +9,8 @@ import {
   MAX_PASSWORD_LENGTH,
   MAX_REQUEST_NOTE_LENGTH,
   REGISTRATION_STEPS,
+  RESET_LINK_STEPS,
+  SETUP_LINK_STEPS,
   TokenPurpose,
   recoveryCodeShape,
 } from '../../accounts/account.model';
@@ -31,7 +33,6 @@ import {
 } from '../../shared/view/html';
 import {
   banner,
-  codeBlock,
   field,
   linkButton,
   submitButton,
@@ -111,9 +112,9 @@ function benefitPanel(benefits: AccountBenefit[]): Panel {
   };
 }
 
-function stepPanel(steps: AccountStep[]): Panel {
+function stepPanel(steps: AccountStep[], heading = 'How it works'): Panel {
   return {
-    heading: 'How it works',
+    heading,
     markup: html`<ol class="account-steps">
       ${join(
         steps.map(
@@ -195,14 +196,12 @@ export function registerPage(state: FormState = {}): string {
 
 export interface CheckEmailState {
   email: string;
-  devLink?: string;
   failed?: boolean;
   reset?: boolean;
 }
 
 export function checkEmailPage({
   email,
-  devLink,
   failed,
   reset,
 }: CheckEmailState): string {
@@ -232,22 +231,6 @@ export function checkEmailPage({
       address above is the one you meant.
     </p>
 
-    ${when(
-      devLink,
-      () =>
-        html`<div class="recovery-panel">
-        <p>
-          <b>Development mode.</b> No SMTP server is configured, so nothing was
-          actually sent. Use this link:
-        </p>
-        ${codeBlock({
-          id: 'setup-link',
-          value: devLink,
-          copyLabel: 'Copy link',
-        })}
-      </div>`,
-    )}
-
     ${linkButton({
       href: AccountRoutes.signIn.template,
       label: 'Back to sign in',
@@ -255,7 +238,16 @@ export function checkEmailPage({
     })}
   </div>`;
 
-  return page('Check your email', shell(main), AccountRoutes.register.template);
+  const panel = stepPanel(
+    reset ? RESET_LINK_STEPS : SETUP_LINK_STEPS,
+    'What happens next',
+  );
+
+  return page(
+    'Check your email',
+    shell(main, panel),
+    AccountRoutes.register.template,
+  );
 }
 
 export function signInPage(state: FormState = {}): string {

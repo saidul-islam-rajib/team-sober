@@ -48,6 +48,11 @@ export * from './account.rules';
 export * from './password-token.model';
 export * from './recovery-code';
 export * from './reset-state';
-export { ACCOUNT_BENEFITS, REGISTRATION_STEPS } from './account.content';
+export {
+  ACCOUNT_BENEFITS,
+  REGISTRATION_STEPS,
+  RESET_LINK_STEPS,
+  SETUP_LINK_STEPS,
+} from './account.content';
 export type { AccountBenefit, AccountStep } from './account.content';
 export { formatDay, formatMoment } from '../shared/format/dates';

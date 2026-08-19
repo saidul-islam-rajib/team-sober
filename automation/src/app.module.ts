@@ -34,6 +34,8 @@ import { AccountsController } from './accounts/accounts.controller';
 import { AccountsAdminController } from './accounts/accounts.admin.controller';
 import { AuthService } from './auth/auth.service';
 import { LoginThrottleService } from './auth/login-throttle.service';
+import { AdminsService } from './admins/admins.service';
+import { AdminsController } from './admins/admins.controller';
 
 @Module({
   imports: [AssetsModule],
@@ -44,6 +46,7 @@ import { LoginThrottleService } from './auth/login-throttle.service';
     ProjectsController,
     AccountsAdminController,
     AccountsController,
+    AdminsController,
     TutorialsAdminController,
     TutorialsController,
     SeoController,
@@ -73,6 +76,7 @@ import { LoginThrottleService } from './auth/login-throttle.service';
     AccountAssetsBootstrap,
     AuthService,
     LoginThrottleService,
+    AdminsService,
     ConfigService,
   ],
 })

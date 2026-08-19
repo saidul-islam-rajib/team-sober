@@ -27,6 +27,7 @@ export class MailerService {
         `SMTP is not configured, so "${message.subject}" for ${message.to} was not sent. ` +
           'Set SMTP_HOST and SMTP_FROM to turn delivery on.',
       );
+      this.logger.debug(`Preview of "${message.subject}":\n${message.text}`);
 
       return { ok: true, delivered: false, preview: message.text };
     }

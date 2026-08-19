@@ -495,8 +495,13 @@ export function loginPage(error?: string, notice?: string): string {
 
       <form method="post" action="/login">
         <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" autocomplete="username" autofocus
+                 placeholder="Leave blank to use the site password" />
+        </div>
+        <div class="field">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" required autofocus
+          <input type="password" id="password" name="password" required
                  placeholder="••••••••" />
         </div>
         <button class="btn" type="submit" style="width:100%;justify-content:center">Sign in</button>

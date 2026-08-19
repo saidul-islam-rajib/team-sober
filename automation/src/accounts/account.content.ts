@@ -46,3 +46,46 @@ export const REGISTRATION_STEPS: AccountStep[] = [
       'Setting the password signs you in, and you stay signed in as long as your session lasts.',
   },
 ];
+
+export const SETUP_LINK_STEPS: AccountStep[] = [
+  {
+    title: 'We just sent an email',
+    detail: 'A one-time link to set your password is on its way to your inbox.',
+  },
+  {
+    title: 'Open it from your inbox',
+    detail:
+      'The link only works once, so use it directly rather than forwarding it.',
+  },
+  {
+    title: 'Choose a password',
+    detail:
+      'Setting one confirms the address is yours and finishes creating your account.',
+  },
+  {
+    title: 'Start learning',
+    detail:
+      'From there your progress and certificates follow your account, not this browser.',
+  },
+];
+
+export const RESET_LINK_STEPS: AccountStep[] = [
+  {
+    title: 'We just sent an email',
+    detail:
+      'A one-time link to choose a new password is on its way to your inbox.',
+  },
+  {
+    title: 'Open it from your inbox',
+    detail:
+      'The link only works once, so use it directly rather than forwarding it.',
+  },
+  {
+    title: 'Choose a new password',
+    detail: 'Your current password keeps working until the link is used.',
+  },
+  {
+    title: 'Sign back in',
+    detail: 'Use your new password the next time you sign in.',
+  },
+];
