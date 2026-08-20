@@ -1,9 +1,19 @@
-import { Controller, Get, Header, Param, Query, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import {
+  Controller,
+  Get,
+  Header,
+  Param,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { formatDate, Post, readingMinutes } from './post.model';
 import { PostsService } from './posts.service';
 import { TutorialsService } from '../tutorials/tutorials.service';
 import { ProjectsService } from '../projects/projects.service';
+import { CommentsService } from '../comments/comments.service';
+import { CurrentAccountService } from '../accounts/current-account.service';
 import { renderMarkdown } from './markdown';
 import {
   homePage,
@@ -18,6 +28,8 @@ export class PostsController {
     private readonly posts: PostsService,
     private readonly tutorials: TutorialsService,
     private readonly projects: ProjectsService,
+    private readonly comments: CommentsService,
+    private readonly current: CurrentAccountService,
   ) {}
 
   private feedStats() {
@@ -108,7 +120,12 @@ export class PostsController {
   }
 
   @Get('post/:slug')
-  post(@Param('slug') slug: string, @Res() res: Response): void {
+  post(
+    @Param('slug') slug: string,
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('commentError') commentError?: string,
+  ): void {
     const published = this.posts.findPublished();
     const post = published.find((p) => p.slug === slug);
 
@@ -139,7 +156,15 @@ export class PostsController {
           .map(({ p }) => p);
 
     const html = renderMarkdown(post.content);
-    res.send(postPage(post, related, html));
+    const account = this.current.resolve(req);
+
+    res.send(
+      postPage(post, related, html, this.comments.forPost(post.slug), {
+        canComment: Boolean(account),
+        viewerAccountId: account?.id,
+        commentError,
+      }),
+    );
   }
 
   @Get('api/search')

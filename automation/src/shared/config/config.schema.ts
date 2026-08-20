@@ -201,6 +201,52 @@ export const CONFIG_GROUPS: ConfigGroup[] = [
     ],
   },
   {
+    id: 'comments',
+    title: 'Comments',
+    description:
+      'Signed-in learners can leave a comment on any post — there is no anonymous posting, so every comment is already tied to an account manageable from Accounts.',
+    fields: [
+      {
+        key: 'comments.maxLength',
+        kind: 'number',
+        label: 'Maximum comment length',
+        hint: 'Longest a single comment may be.',
+        default: 1000,
+        min: 100,
+        max: 5000,
+        unit: 'characters',
+      },
+      {
+        key: 'comments.cooldownSeconds',
+        kind: 'number',
+        label: 'Cooldown between comments',
+        hint: 'How long one account must wait between posting comments.',
+        default: 20,
+        min: 0,
+        max: 3600,
+        unit: 'seconds',
+      },
+    ],
+  },
+  {
+    id: 'newsletter',
+    title: 'Newsletter',
+    description:
+      'Double opt-in email updates. Subscribing emails a confirmation link, and nothing is added to the list until that link is followed.',
+    fields: [
+      {
+        key: 'newsletter.confirmLinkMinutes',
+        kind: 'number',
+        label: 'Confirmation link lifetime',
+        hint: 'How long an emailed subscribe-confirmation link stays usable.',
+        default: 1440,
+        min: 15,
+        max: 10_080,
+        unit: 'minutes',
+      },
+    ],
+  },
+  {
     id: 'support',
     title: 'Support & contact',
     description:

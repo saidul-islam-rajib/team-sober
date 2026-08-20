@@ -531,6 +531,33 @@ ${head}
   .footer-inner a { color: var(--accent); }
   .footer-inner a:hover { text-decoration: underline; }
 
+  .footer-subscribe {
+    max-width: 1100px; margin: 0 auto 1.5rem;
+    padding: 0 clamp(1rem, 2.4vw, 1.45rem);
+  }
+  .footer-subscribe label {
+    font-size: 0.8rem; font-weight: 600; color: var(--ink-2); margin-bottom: 0.5rem;
+  }
+  .footer-subscribe-row { display: flex; gap: 0.5rem; max-width: 380px; }
+  .footer-subscribe-row input { flex: 1; }
+
+  .pwa-toast {
+    position: fixed; left: 1rem; right: 1rem; bottom: 1rem; z-index: 60;
+    max-width: 420px; margin: 0 auto;
+    display: flex; align-items: center; gap: 0.75rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 0.85rem 1rem;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+    font-size: 0.88rem; color: var(--ink-2);
+  }
+  .pwa-toast[hidden] { display: none; }
+  .pwa-toast span:first-child { flex: 1; }
+  .pwa-toast-dismiss {
+    background: transparent; border: 0; cursor: pointer; color: var(--ink-3);
+    font-size: 1.2rem; line-height: 1; padding: 0.2rem; flex-shrink: 0;
+  }
+  .pwa-toast-dismiss:hover { color: var(--ink); }
+
   @media (max-width: 640px) {
     .page-title { font-size: 1.6rem; }
     .header-inner { min-height: 60px; padding: 0.7rem 0.9rem; }
@@ -565,6 +592,15 @@ ${body}
   </main>
 
   <footer class="site-footer">
+    <div class="footer-subscribe">
+      <form method="post" action="/subscribe">
+        <label for="footer-email">Get new posts by email</label>
+        <div class="footer-subscribe-row">
+          <input type="email" id="footer-email" name="email" placeholder="you@example.com" required />
+          <button class="btn btn-sm" type="submit">Subscribe</button>
+        </div>
+      </form>
+    </div>
     <div class="footer-inner">
       <span>
         ${footerLogo()}
@@ -589,6 +625,12 @@ ${body}
       </span>
     </div>
   </footer>
+
+  <div class="pwa-toast" id="pwa-toast" hidden role="status">
+    <span id="pwa-toast-text"></span>
+    <button type="button" class="btn btn-sm" id="pwa-toast-action"></button>
+    <button type="button" class="pwa-toast-dismiss" id="pwa-toast-dismiss" aria-label="Dismiss">&times;</button>
+  </div>
 <script>
 (function () {
   var toggle = document.getElementById('nav-toggle');
@@ -622,9 +664,70 @@ ${body}
 </script>
 <script>
 (function () {
+  var toast = document.getElementById('pwa-toast');
+  var text = document.getElementById('pwa-toast-text');
+  var action = document.getElementById('pwa-toast-action');
+  var dismiss = document.getElementById('pwa-toast-dismiss');
+  if (!toast) return;
+
+  var current = null;
+
+  function show(message, actionLabel, onAction) {
+    if (current) return;
+    current = onAction;
+    text.textContent = message;
+    action.textContent = actionLabel;
+    toast.hidden = false;
+  }
+
+  function hide() {
+    current = null;
+    toast.hidden = true;
+  }
+
+  action.addEventListener('click', function () {
+    var handler = current;
+    hide();
+    if (handler) handler();
+  });
+
+  dismiss.addEventListener('click', hide);
+
+  var deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', function (ev) {
+    ev.preventDefault();
+    deferredPrompt = ev;
+    show('Install this app for quick access?', 'Install', function () {
+      var prompted = deferredPrompt;
+      deferredPrompt = null;
+      if (prompted) prompted.prompt();
+    });
+  });
+
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
+    hide();
+  });
+
   if (!('serviceWorker' in navigator)) return;
+
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+    navigator.serviceWorker.register('/service-worker.js').then(function (reg) {
+      reg.addEventListener('updatefound', function () {
+        if (!reg.active) return;
+        var installing = reg.installing;
+        if (!installing) return;
+
+        installing.addEventListener('statechange', function () {
+          if (installing.state === 'activated') {
+            show('A new version is available.', 'Reload', function () {
+              window.location.reload();
+            });
+          }
+        });
+      });
+    }).catch(function (error) {
       console.warn('Service worker registration failed', error);
     });
   });
@@ -667,6 +770,8 @@ export function adminNav(path = '/admin'): string {
     navLink('/admin/tutorials', 'Tutorials', path),
     navLink('/admin/accounts', 'Accounts', path),
     navLink('/admin/admins', 'Admins', path),
+    navLink('/admin/comments', 'Comments', path),
+    navLink('/admin/newsletter', 'Newsletter', path),
     navLink('/admin/about', 'About', path),
     navLink('/admin/settings', 'Settings', path),
     navLink('/admin/posts', 'Write', path, '/admin/posts/new'),

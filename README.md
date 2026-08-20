@@ -604,7 +604,7 @@ suggestion would produce a different answer.
 
 | Area | Implementation |
 |---|---|
-| **Password comparison** | `crypto.timingSafeEqual` — content comparison is constant-time |
+| **Password comparison** | Both sides SHA-256 hashed to a fixed length, then `crypto.timingSafeEqual` — fully constant-time, no length-based early return |
 | **Session** | HMAC-SHA256 signed cookie, `httpOnly`, `sameSite=lax`, `secure` when served over HTTPS, 12-hour expiry carried inside the signed payload |
 | **Transport** | TLS via Caddy, HTTP redirected to HTTPS, HSTS for one year |
 | **Response headers** | `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, `Server` removed |
@@ -625,9 +625,6 @@ write, and one address being locked never affects another.
 
 ### Known weaknesses, stated honestly
 
-- **Password length leaks.** `timingSafeEqual` requires equal-length buffers, so an unequal length
-  returns early. The content comparison is constant-time; the length comparison is not. Hashing
-  both sides before comparing would close it.
 - **Rate limiting is in-memory and per instance.** Locks are cleared by a restart. Behind the proxy,
   `TRUST_PROXY=1` **must** be set — otherwise every visitor arrives as Caddy's address and shares
   one bucket, so five failures from anyone locks out everyone.
@@ -783,7 +780,7 @@ Honest about what is not production-grade:
 - **Rate limiting is per instance and in memory.** Locks are cleared by a restart.
 - **No image registry.** Images are built on the same host that runs them, consuming build time and disk on a machine short of both.
 - **Single admin password.** No user accounts, no rotation, no audit log.
-- **No uptime monitoring.** `/health` exists and the pipeline checks it, but nothing polls it between deploys.
+- **Uptime monitoring is opt-in.** `/health` exists and the pipeline checks it, and `scripts/healthcheck.sh` can poll it between deploys and alert on failure — but like backups, it only runs once it's wired into cron. See [deploy/README.md](deploy/README.md#4-health-monitoring).
 
 ---
 

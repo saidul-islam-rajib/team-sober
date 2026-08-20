@@ -25,6 +25,16 @@ describe('AuthService', () => {
     expect(auth.verifyPassword('')).toBe(false);
   });
 
+  it('rejects a candidate of a different length without a length-based early return', () => {
+    process.env.ADMIN_PASSWORD = 'a-fairly-long-password';
+    const auth = new AuthService();
+
+    expect(auth.verifyPassword('short')).toBe(false);
+    expect(auth.verifyPassword('a-much-much-longer-candidate-string')).toBe(
+      false,
+    );
+  });
+
   it('issues a token that verifies', () => {
     process.env.ADMIN_PASSWORD = 'pw';
     const auth = new AuthService();

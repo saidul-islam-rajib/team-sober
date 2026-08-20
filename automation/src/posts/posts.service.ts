@@ -194,6 +194,10 @@ export class PostsService {
     };
   }
 
+  topByViews(limit = 5): Post[] {
+    return [...this.posts].sort((a, b) => b.views - a.views).slice(0, limit);
+  }
+
   recordView(slug: string): void {
     const post = this.posts.find((p) => p.slug === slug);
     if (!post) return;

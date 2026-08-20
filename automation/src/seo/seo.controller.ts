@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Res } from '@nestjs/common';
+import { Controller, Get, Header, Param, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -10,6 +10,7 @@ import { TutorialsService } from '../tutorials/tutorials.service';
 import { termSlug } from '../projects/project.model';
 import { formatDuration } from '../tutorials/tutorial.model';
 import { hostOf } from '../settings/settings.model';
+import { excerpt } from '../posts/post.model';
 import { renderMarkdown } from '../posts/markdown';
 import { renderAppIcon, AppIconOptions } from './app-icon';
 import { buildFeed, xmlEscape as xml } from './feed.model';
@@ -225,6 +226,32 @@ ${urls}
           { label: 'Projects', meta: String(projects) },
         ],
         brand: hostOf(s.siteUrl) || s.authorName,
+      }),
+    );
+  }
+
+  @Get('og/post/:slug.png')
+  async postCard(
+    @Param('slug') slug: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const post = this.posts.findPublished().find((p) => p.slug === slug);
+
+    if (!post) {
+      res.status(404).send('Card unavailable');
+      return;
+    }
+
+    const s = this.settings.get();
+
+    await this.sendCard(
+      res,
+      ogCardSvg({
+        eyebrow: post.tags[0] ?? s.siteTitle,
+        title: post.title,
+        subtitle: post.subtitle || excerpt(post.content, 140),
+        rows: [],
+        brand: `${s.authorName}${hostOf(s.siteUrl) ? ` · ${hostOf(s.siteUrl)}` : ''}`,
       }),
     );
   }

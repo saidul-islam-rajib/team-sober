@@ -80,6 +80,78 @@ export function passwordSetupEmail({
   };
 }
 
+export function subscribeConfirmEmail({
+  link,
+  minutes,
+}: {
+  link: string;
+  minutes: number;
+}): MailMessage {
+  const site = siteName();
+
+  const text = [
+    `Someone requested email updates from ${site} using this address.`,
+    `Confirm the subscription by opening the link below. It expires in ${minutes} minutes.`,
+    '',
+    link,
+    '',
+    'If this was not you, ignore this email — nothing is added to the list until the link is used.',
+    '',
+    site,
+  ].join('\n');
+
+  return {
+    to: '',
+    subject: `Confirm your ${site} subscription`,
+    text,
+    html: wrap(
+      site,
+      `Confirm you want email updates from ${site}.`,
+      html`${callToAction('Confirm subscription', link, minutes)}
+        <p style="margin:24px 0 0;color:#94a3b8;font-size:12px">
+          If this was not you, ignore this email — nothing is added to the
+          list until the link is used.
+        </p>`,
+    ),
+  };
+}
+
+export function newsletterIssueEmail({
+  subject,
+  message,
+  unsubscribeLink,
+}: {
+  subject: string;
+  message: string;
+  unsubscribeLink: string;
+}): MailMessage {
+  const site = siteName();
+
+  const text = [message, '', `Unsubscribe: ${unsubscribeLink}`, '', site].join(
+    '\n',
+  );
+
+  return {
+    to: '',
+    subject,
+    text,
+    html: wrap(
+      site,
+      subject,
+      html`<div
+          style="white-space:pre-wrap;color:#0f172a;font-size:14px;line-height:1.6"
+        >
+          ${message}
+        </div>
+        <p style="margin:24px 0 0;color:#94a3b8;font-size:12px">
+          <a href="${unsubscribeLink}" style="color:#94a3b8"
+            >Unsubscribe</a
+          >
+        </p>`,
+    ),
+  };
+}
+
 export function passwordResetEmail({
   name,
   link,

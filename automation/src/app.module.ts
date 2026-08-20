@@ -36,6 +36,12 @@ import { AuthService } from './auth/auth.service';
 import { LoginThrottleService } from './auth/login-throttle.service';
 import { AdminsService } from './admins/admins.service';
 import { AdminsController } from './admins/admins.controller';
+import { CommentsService } from './comments/comments.service';
+import { CommentsController } from './comments/comments.controller';
+import { CommentsAdminController } from './comments/comments.admin.controller';
+import { SubscribersService } from './newsletter/subscribers.service';
+import { NewsletterController } from './newsletter/newsletter.controller';
+import { NewsletterAdminController } from './newsletter/newsletter.admin.controller';
 
 @Module({
   imports: [AssetsModule],
@@ -53,6 +59,10 @@ import { AdminsController } from './admins/admins.controller';
     AdminController,
     UploadsController,
     ImagesController,
+    CommentsAdminController,
+    CommentsController,
+    NewsletterAdminController,
+    NewsletterController,
     PostsController,
   ],
   providers: [
@@ -78,6 +88,8 @@ import { AdminsController } from './admins/admins.controller';
     LoginThrottleService,
     AdminsService,
     ConfigService,
+    CommentsService,
+    SubscribersService,
   ],
 })
 export class AppModule {}

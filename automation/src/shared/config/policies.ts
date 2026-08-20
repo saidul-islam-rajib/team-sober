@@ -81,6 +81,27 @@ export const ImagePolicy = {
   },
 };
 
+export const CommentPolicy = {
+  get maxLength(): number {
+    return configNumber('comments.maxLength');
+  },
+  get cooldownSeconds(): number {
+    return configNumber('comments.cooldownSeconds');
+  },
+  get cooldownMs(): number {
+    return configNumber('comments.cooldownSeconds') * 1000;
+  },
+};
+
+export const NewsletterPolicy = {
+  get confirmLinkMinutes(): number {
+    return configNumber('newsletter.confirmLinkMinutes');
+  },
+  get confirmLinkMs(): number {
+    return configNumber('newsletter.confirmLinkMinutes') * MINUTE;
+  },
+};
+
 export const SupportPolicy = {
   get channelUrl(): string {
     return configText('support.channelUrl');

@@ -28,6 +28,15 @@ const ADMIN_CSS = `
     background: var(--surface-2); border: 1px solid var(--border);
     border-radius: 12px; padding: 1.05rem 1.15rem;
   }
+  .top-posts { margin-bottom: 2.5rem; }
+  .top-post {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.6rem 0; border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .top-post:hover .t { color: var(--accent); }
+  .top-post .t { color: var(--ink); }
+  .top-post .v { color: var(--ink-3); white-space: nowrap; font-size: 0.82rem; }
   .kpi .l {
     font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em;
     color: var(--ink-3); margin-bottom: 0.4rem; font-weight: 600;
@@ -169,6 +178,7 @@ export function dashboardPage(opts: {
     readingMinutes: number;
   };
   tags: { tag: string; count: number }[];
+  topPosts?: Post[];
   flash?: { kind: 'ok' | 'err'; text: string };
   query?: string;
   page?: number;
@@ -179,6 +189,7 @@ export function dashboardPage(opts: {
     posts,
     stats,
     tags,
+    topPosts = [],
     flash,
     query = '',
     page = 1,
@@ -230,6 +241,23 @@ ${ADMIN_CSS}
     <div class="kpi"><div class="l">Views</div><div class="v">${stats.views}</div><div class="m">all time</div></div>
     <div class="kpi"><div class="l">Words</div><div class="v">${stats.words.toLocaleString()}</div><div class="m">${stats.readingMinutes} min of reading</div></div>
   </div>
+
+  ${
+    topPosts.some((p) => p.views > 0)
+      ? `<div class="section-label">Top posts by views</div>
+  <div class="top-posts">
+    ${topPosts
+      .filter((p) => p.views > 0)
+      .map(
+        (p) => `<a class="top-post" href="/post/${esc(p.slug)}">
+        <span class="t">${esc(p.title)}</span>
+        <span class="v">${p.views} view${p.views === 1 ? '' : 's'}</span>
+      </a>`,
+      )
+      .join('')}
+  </div>`
+      : ''
+  }
 
   <div class="section-label">Key highlights</div>
   <div class="tag-row" style="margin-bottom:2.5rem">

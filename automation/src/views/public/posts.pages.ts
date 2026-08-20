@@ -9,7 +9,10 @@ import {
 } from '../../posts/post.model';
 import { avatarMark, esc, IMAGE_SKELETON, layout } from '../shared/layout';
 import { getSettings } from '../../settings/settings.store';
-import { ContentPolicy } from '../../shared/config/policies';
+import { AccountRoutes, accountUrl } from '../../accounts/account.routes';
+import { Comment } from '../../comments/comment.model';
+import { OG_CARD_HEIGHT, OG_CARD_WIDTH } from '../../seo/og-card.svg';
+import { CommentPolicy, ContentPolicy } from '../../shared/config/policies';
 import { PROSE_BUNDLE } from '../shared/styles/prose.styles';
 import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
 
@@ -522,7 +525,14 @@ export function postPage(
   post: Post,
   related: Post[],
   renderedHtml: string,
+  comments: Comment[] = [],
+  options: {
+    canComment?: boolean;
+    viewerAccountId?: string;
+    commentError?: string;
+  } = {},
 ): string {
+  const { canComment = false, viewerAccountId, commentError } = options;
   const mins = readingMinutes(post.content);
   const words = wordCount(post.content);
 
@@ -567,6 +577,20 @@ ${PROSE_BUNDLE}
   .related a:hover strong { color: var(--accent); }
   .related strong { display: block; color: var(--ink); font-family: var(--serif); font-size: 1.02rem; }
   .related span { font-size: 0.8rem; color: var(--ink-3); }
+
+  .comments { margin-top: 2.5rem; }
+  .comment { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+  .comment-head { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.35rem; }
+  .comment-head .who { font-weight: 600; color: var(--ink); font-size: 0.9rem; }
+  .comment-head .when { font-size: 0.78rem; color: var(--ink-3); }
+  .comment-body { white-space: pre-wrap; font-size: 0.92rem; color: var(--ink-2); }
+  .comment-delete {
+    margin-top: 0.5rem; background: transparent; border: 0; cursor: pointer;
+    font-family: inherit; font-size: 0.78rem; color: var(--ink-3); padding: 0;
+  }
+  .comment-delete:hover { color: var(--danger); }
+  .comment-form { margin-top: 1.25rem; }
+  .comment-form textarea { margin-bottom: 0.75rem; }
 </style>
 
   <a href="/" style="font-size:.86rem;color:var(--ink-3)">← All posts</a>
@@ -622,7 +646,48 @@ ${PROSE_BUNDLE}
         .join('')}
     </section>`
       : ''
-  }`;
+  }
+
+  <section class="comments" id="comments">
+    <div class="section-label">Comments (${comments.length})</div>
+    ${
+      comments.length
+        ? comments
+            .map(
+              (c) => `<div class="comment">
+        <div class="comment-head">
+          <span class="who">${esc(c.authorName)}</span>
+          <span class="when">${esc(relativeDate(c.createdAt))}</span>
+        </div>
+        <p class="comment-body">${esc(c.body)}</p>
+        ${
+          viewerAccountId === c.accountId
+            ? `<form method="post" action="/comments/${esc(c.id)}/delete" onsubmit="return confirm('Delete your comment?')">
+                 <button class="comment-delete" type="submit">Delete</button>
+               </form>`
+            : ''
+        }
+      </div>`,
+            )
+            .join('')
+        : `<p class="hint">No comments yet.</p>`
+    }
+
+    ${commentError ? `<div class="flash err">${esc(commentError)}</div>` : ''}
+
+    ${
+      canComment
+        ? `<form class="comment-form" method="post" action="/post/${esc(post.slug)}/comments">
+             <label for="comment-body">Add a comment</label>
+             <textarea id="comment-body" name="body" rows="4" required
+               maxlength="${CommentPolicy.maxLength}"></textarea>
+             <button class="btn" type="submit">Post comment</button>
+           </form>`
+        : `<p class="hint"><a href="${esc(accountUrl(AccountRoutes.signIn.template, { next: `/post/${post.slug}#comments` }))}">Sign in</a> to leave a comment.</p>`
+    }
+  </section>`;
+
+  const contentImage = firstImage(post.content);
 
   return layout({
     title: `${post.title} — ${getSettings().authorName}`,
@@ -630,7 +695,9 @@ ${PROSE_BUNDLE}
     body: body + LIGHTBOX_SCRIPT + IMAGE_SKELETON,
     variant: 'default',
     path: `/post/${post.slug}`,
-    image: firstImage(post.content),
+    image: contentImage ?? `/og/post/${post.slug}.png`,
+    imageWidth: contentImage ? undefined : OG_CARD_WIDTH,
+    imageHeight: contentImage ? undefined : OG_CARD_HEIGHT,
     ogType: 'article',
     publishedAt: post.publishedAt,
     head: `<script type="application/ld+json">${JSON.stringify({

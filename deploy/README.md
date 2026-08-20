@@ -222,6 +222,36 @@ Moving to a real database is what removes the caveat rather than shrinking it.
 
 ---
 
+## 4. Health monitoring
+
+The pipeline checks `/health` right after each deploy, but nothing watches it
+**between** deploys — an outage at 3 a.m. goes unnoticed until someone
+visits the site. `scripts/healthcheck.sh` closes that gap:
+
+```bash
+sh scripts/healthcheck.sh
+```
+
+It curls `/health`, exits non-zero on failure, and — if `ALERT_WEBHOOK` is
+set to a Slack-compatible incoming webhook URL — posts a one-line alert
+there too. With no webhook configured it still exits non-zero, which is
+enough for cron's own mail-on-failure to notify whoever owns the crontab.
+
+```bash
+sudo crontab -e
+```
+
+```cron
+# Check the site every 5 minutes.
+*/5 * * * * ALERT_WEBHOOK=https://hooks.slack.com/services/… /usr/bin/sh /var/lib/jenkins/workspace/<job-name>/scripts/healthcheck.sh >> /var/log/blog-healthcheck.log 2>&1
+```
+
+Point it at a stable checkout rather than a Jenkins workspace if you have
+one — workspaces get wiped. `HEALTH_URL` and `HEALTH_TIMEOUT` are also
+overridable, for checking a non-default port or a slower host.
+
+---
+
 ## Verifying the whole thing
 
 ```bash

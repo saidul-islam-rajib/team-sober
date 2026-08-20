@@ -159,6 +159,7 @@ export class AdminController {
       posts: matched.slice(start, start + pageSize),
       stats: this.posts.stats(),
       tags: this.posts.tagCounts(),
+      topPosts: this.posts.topByViews(5),
       flash,
       query: q,
       page,

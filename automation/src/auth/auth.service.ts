@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -26,9 +26,8 @@ export class AuthService {
   verifyPassword(candidate: string): boolean {
     if (!this.configured || !candidate) return false;
 
-    const a = Buffer.from(candidate);
-    const b = Buffer.from(this.password);
-    if (a.length !== b.length) return false;
+    const a = createHash('sha256').update(candidate).digest();
+    const b = createHash('sha256').update(this.password).digest();
 
     return timingSafeEqual(a, b);
   }

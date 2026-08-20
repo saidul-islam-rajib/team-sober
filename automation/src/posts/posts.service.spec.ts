@@ -348,6 +348,31 @@ describe('PostsService', () => {
     expect(service.findById(post.id).views).toBe(2);
   });
 
+  it('ranks posts by view count, most viewed first', () => {
+    const quiet = service.create({
+      title: 'Quiet Post',
+      content: 'x',
+      status: 'published',
+    });
+    const popular = service.create({
+      title: 'Popular Post',
+      content: 'x',
+      status: 'published',
+    });
+    service.recordView(popular.slug);
+    service.recordView(popular.slug);
+    service.recordView(quiet.slug);
+
+    const top = service.topByViews(2);
+
+    expect(top[0].id).toBe(popular.id);
+    expect(top[1].id).toBe(quiet.id);
+  });
+
+  it('caps the leaderboard at the requested limit', () => {
+    expect(service.topByViews(3)).toHaveLength(3);
+  });
+
   it('persists across instances', () => {
     service.create({ title: 'Durable', content: 'x', status: 'published' });
 
