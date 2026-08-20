@@ -775,10 +775,12 @@ ${body}
   if (!toast) return;
 
   var current = null;
+  var currentDismiss = null;
 
-  function show(message, actionLabel, onAction) {
+  function show(message, actionLabel, onAction, onDismiss) {
     if (current) return;
     current = onAction;
+    currentDismiss = onDismiss;
     text.textContent = message;
     action.textContent = actionLabel;
     toast.hidden = false;
@@ -786,6 +788,7 @@ ${body}
 
   function hide() {
     current = null;
+    currentDismiss = null;
     toast.hidden = true;
   }
 
@@ -795,7 +798,11 @@ ${body}
     if (handler) handler();
   });
 
-  dismiss.addEventListener('click', hide);
+  dismiss.addEventListener('click', function () {
+    var handler = currentDismiss;
+    hide();
+    if (handler) handler();
+  });
 
   var deferredPrompt = null;
 
@@ -813,6 +820,39 @@ ${body}
     deferredPrompt = null;
     hide();
   });
+
+  function iosInstallHintDismissed() {
+    try {
+      return localStorage.getItem('pwa-ios-hint-dismissed') === '1';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function dismissIosInstallHint() {
+    try {
+      localStorage.setItem('pwa-ios-hint-dismissed', '1');
+    } catch (error) {
+      // Private browsing can refuse localStorage; the hint just reappears.
+    }
+  }
+
+  var isStandalone =
+    window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+
+  var isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  if (isIOS && !isStandalone && !iosInstallHintDismissed()) {
+    show(
+      'Install this app: tap Share, then "Add to Home Screen".',
+      'Got it',
+      dismissIosInstallHint,
+      dismissIosInstallHint,
+    );
+  }
 
   if (!('serviceWorker' in navigator)) return;
 
