@@ -1,5 +1,7 @@
 import { Controller, Get, Header, Res } from '@nestjs/common';
 import type { Response } from 'express';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import sharp from 'sharp';
 import { PostsService } from '../posts/posts.service';
 import { ProjectsService } from '../projects/projects.service';
@@ -9,17 +11,74 @@ import { termSlug } from '../projects/project.model';
 import { formatDuration } from '../tutorials/tutorial.model';
 import { hostOf } from '../settings/settings.model';
 import { renderMarkdown } from '../posts/markdown';
+import { renderAppIcon, AppIconOptions } from './app-icon';
 import { buildFeed, xmlEscape as xml } from './feed.model';
+import {
+  APPLE_TOUCH_ICON_SIZE,
+  APP_ICON_SIZES,
+  MANIFEST_THEME_COLOR,
+  buildManifest,
+} from './manifest.model';
 import { ogCardSvg } from './og-card.svg';
 
 @Controller()
 export class SeoController {
+  private readonly iconSvg = readFileSync(
+    join(process.cwd(), 'public', 'icon.svg'),
+  );
+
   constructor(
     private readonly posts: PostsService,
     private readonly projects: ProjectsService,
     private readonly settings: SettingsService,
     private readonly tutorials: TutorialsService,
   ) {}
+
+  @Get('manifest.webmanifest')
+  @Header('Content-Type', 'application/manifest+json')
+  manifest(): string {
+    return JSON.stringify(buildManifest(this.settings.get()));
+  }
+
+  private async sendIcon(
+    res: Response,
+    size: number,
+    options?: AppIconOptions,
+  ): Promise<void> {
+    try {
+      const png = await renderAppIcon(this.iconSvg, size, options);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(png);
+    } catch {
+      res.status(404).send('Icon unavailable');
+    }
+  }
+
+  @Get(`icons/icon-${APP_ICON_SIZES[0]}.png`)
+  icon192(@Res() res: Response): Promise<void> {
+    return this.sendIcon(res, APP_ICON_SIZES[0]);
+  }
+
+  @Get(`icons/icon-${APP_ICON_SIZES[1]}.png`)
+  icon512(@Res() res: Response): Promise<void> {
+    return this.sendIcon(res, APP_ICON_SIZES[1]);
+  }
+
+  @Get(`icons/icon-${APP_ICON_SIZES[1]}-maskable.png`)
+  icon512Maskable(@Res() res: Response): Promise<void> {
+    return this.sendIcon(res, APP_ICON_SIZES[1], {
+      maskable: true,
+      background: MANIFEST_THEME_COLOR,
+    });
+  }
+
+  @Get('icons/apple-touch-icon.png')
+  appleTouchIcon(@Res() res: Response): Promise<void> {
+    return this.sendIcon(res, APPLE_TOUCH_ICON_SIZE, {
+      background: MANIFEST_THEME_COLOR,
+    });
+  }
 
   @Get('sitemap.xml')
   @Header('Content-Type', 'application/xml')

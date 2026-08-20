@@ -25,6 +25,10 @@ interface LayoutOptions {
   noindex?: boolean;
 }
 
+import {
+  APPLE_TOUCH_ICON_SIZE,
+  MANIFEST_THEME_COLOR,
+} from '../../seo/manifest.model';
 import { initials } from '../../settings/settings.model';
 import { getSettings } from '../../settings/settings.store';
 import { AssetRef, assetHref } from '../../shared/assets/asset.store';
@@ -199,14 +203,14 @@ export function layout({
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(summary)}" />
-<meta name="theme-color" content="#0f766e" />
+<meta name="theme-color" content="${MANIFEST_THEME_COLOR}" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="${esc(s.siteTitle)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-<link rel="apple-touch-icon" href="/icon.svg" />
+<link rel="apple-touch-icon" sizes="${APPLE_TOUCH_ICON_SIZE}x${APPLE_TOUCH_ICON_SIZE}" href="/icons/apple-touch-icon.png" />
 <link rel="alternate" type="application/rss+xml" title="${esc(s.siteTitle)}" href="${esc(absolute('/feed.xml'))}" />
 ${noindex ? '<meta name="robots" content="noindex, nofollow" />' : '<meta name="robots" content="index, follow" />'}
 
