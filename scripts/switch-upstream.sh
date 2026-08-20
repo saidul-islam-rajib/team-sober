@@ -26,10 +26,16 @@ probe() {
     sudo -n -l > /dev/null 2>&1 \
         || unavailable "the $(id -un) user cannot use sudo without a password."
 
-    sudo -n -l 2>/dev/null | grep -q "$UPSTREAM_FILE" \
+    RULES="$(sudo -n -l 2>/dev/null || true)"
+
+    if echo "$RULES" | grep -q 'NOPASSWD:[[:space:]]*ALL'; then
+        return 0
+    fi
+
+    echo "$RULES" | grep -q "$UPSTREAM_FILE" \
         || unavailable "there is no sudoers rule allowing $(id -un) to write $UPSTREAM_FILE."
 
-    sudo -n -l 2>/dev/null | grep -q 'reload caddy' \
+    echo "$RULES" | grep -q 'reload caddy' \
         || unavailable "there is no sudoers rule allowing $(id -un) to reload caddy."
 }
 
