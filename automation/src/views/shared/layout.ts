@@ -772,6 +772,7 @@ export function adminNav(path = '/admin'): string {
     navLink('/admin/admins', 'Admins', path),
     navLink('/admin/comments', 'Comments', path),
     navLink('/admin/newsletter', 'Newsletter', path),
+    navLink('/admin/system', 'System', path),
     navLink('/admin/about', 'About', path),
     navLink('/admin/settings', 'Settings', path),
     navLink('/admin/posts', 'Write', path, '/admin/posts/new'),

@@ -42,6 +42,8 @@ import { CommentsAdminController } from './comments/comments.admin.controller';
 import { SubscribersService } from './newsletter/subscribers.service';
 import { NewsletterController } from './newsletter/newsletter.controller';
 import { NewsletterAdminController } from './newsletter/newsletter.admin.controller';
+import { SystemService } from './system/system.service';
+import { SystemAdminController } from './system/system.admin.controller';
 
 @Module({
   imports: [AssetsModule],
@@ -63,6 +65,7 @@ import { NewsletterAdminController } from './newsletter/newsletter.admin.control
     CommentsController,
     NewsletterAdminController,
     NewsletterController,
+    SystemAdminController,
     PostsController,
   ],
   providers: [
@@ -90,6 +93,7 @@ import { NewsletterAdminController } from './newsletter/newsletter.admin.control
     ConfigService,
     CommentsService,
     SubscribersService,
+    SystemService,
   ],
 })
 export class AppModule {}

@@ -80,6 +80,23 @@ describe('LoginThrottleService', () => {
     expect(throttle.blocked(IP, now)).toBe(false);
   });
 
+  it('counts only addresses currently locked out', () => {
+    failTimes(MAX_ATTEMPTS, now, IP);
+    throttle.recordFailure('198.51.100.4', now);
+
+    expect(throttle.lockedCount(now)).toBe(1);
+    expect(throttle.lockedCount(now + LOCKOUT_MS + 1)).toBe(0);
+  });
+
+  it('clears every lockout at once', () => {
+    failTimes(MAX_ATTEMPTS, now, IP);
+    failTimes(MAX_ATTEMPTS, now, '198.51.100.4');
+
+    expect(throttle.clearAll()).toBe(2);
+    expect(throttle.blocked(IP, now)).toBe(false);
+    expect(throttle.blocked('198.51.100.4', now)).toBe(false);
+  });
+
   it('does not grow without bound as addresses come and go', () => {
     for (let i = 0; i < 500; i++) {
       throttle.recordFailure(`10.0.0.${i}`, now);

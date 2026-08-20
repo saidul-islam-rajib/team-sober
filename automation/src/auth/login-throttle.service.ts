@@ -59,6 +59,22 @@ export class LoginThrottleService {
     this.attempts.delete(key);
   }
 
+  lockedCount(now = Date.now()): number {
+    let count = 0;
+
+    for (const record of this.attempts.values()) {
+      if (record.lockedUntil > now) count++;
+    }
+
+    return count;
+  }
+
+  clearAll(): number {
+    const count = this.attempts.size;
+    this.attempts.clear();
+    return count;
+  }
+
   private sweep(now: number): void {
     for (const [key, record] of this.attempts) {
       const expired = record.lockedUntil > 0 && record.lockedUntil <= now;

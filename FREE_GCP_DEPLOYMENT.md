@@ -142,10 +142,18 @@ sudo chown $USER:$USER /opt/team-sober-data
 
 ```bash
 docker run -d --name team-sober \
+  --restart unless-stopped \
   -p 3000:3000 \
+  -e ADMIN_PASSWORD="choose-a-password" \
+  -e AUTH_SECRET="a-random-string-at-least-32-characters-long" \
   -v /opt/team-sober-data:/app/data \
   team-sober
 ```
+
+`--restart unless-stopped` is what makes the container come back on its own
+after a VM reboot or crash — without it, an outage means SSHing back in and
+running this command by hand. `ADMIN_PASSWORD` is not optional: without it
+the admin area cannot be signed into at all.
 
 2. Check the container status:
 
@@ -179,6 +187,7 @@ sudo chown $USER:$USER /opt/jenkins_home
 
 ```bash
 docker run -d --name jenkins \
+  --restart unless-stopped \
   -p 8080:8080 -p 50000:50000 \
   -v /opt/jenkins_home:/var/jenkins_home \
   jenkins/jenkins:lts
@@ -234,7 +243,11 @@ pipeline {
       steps {
         sh '''
           docker rm -f team-sober || true
-          docker run -d --name team-sober -p 3000:3000 -v /opt/team-sober-data:/app/data team-sober
+          docker run -d --name team-sober --restart unless-stopped \
+            -p 3000:3000 -v /opt/team-sober-data:/app/data \
+            -e ADMIN_PASSWORD="choose-a-password" \
+            -e AUTH_SECRET="a-random-string-at-least-32-characters-long" \
+            team-sober
         '''
       }
     }
@@ -270,6 +283,43 @@ If you need to restart or remove containers:
 docker rm -f team-sober || true
 docker rm -f jenkins || true
 ```
+
+## 14. Health monitoring and restarting
+
+A free-tier VM has no other monitoring in front of it, so it's worth setting
+up both layers below — they cover different failure modes.
+
+### Outside the app: does the host still answer at all?
+
+`scripts/healthcheck.sh` polls `/health` and can alert to a Slack-compatible
+webhook. This is the only thing that still works when the app itself is
+unreachable — an in-app page cannot report on its own outage.
+
+```bash
+sh scripts/healthcheck.sh
+```
+
+```bash
+sudo crontab -e
+```
+
+```cron
+# Check the site every 5 minutes.
+*/5 * * * * ALERT_WEBHOOK=https://hooks.slack.com/services/… HEALTH_URL=http://127.0.0.1:3000/health /usr/bin/sh /opt/team-sober/scripts/healthcheck.sh >> /var/log/team-sober-healthcheck.log 2>&1
+```
+
+### Inside the app: **Admin → System**
+
+Signed in as admin, `/admin/system` shows uptime, memory, how large the data
+directory has grown, whether `ADMIN_PASSWORD` / `AUTH_SECRET` / mail are
+actually configured (the easiest things to forget on a fresh VM), and current
+login lockouts — with a one-click **Clear all lockouts** if the in-memory
+rate limiter needs resetting without a full restart.
+
+It also has a **Restart app** button. It only ever comes back on its own if
+`--restart unless-stopped` was used when the container was started (see
+section 8) — without that, restarting from this page takes the site down
+until someone runs `docker start team-sober` by hand.
 
 ## Notes
 
