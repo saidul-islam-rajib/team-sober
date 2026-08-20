@@ -38,6 +38,7 @@ import {
   submitButton,
 } from '../../shared/view/components';
 import { initials } from '../../settings/settings.model';
+import { formatDay } from '../../shared/format/dates';
 import { layout } from '../shared/layout';
 
 const STYLES = [css(UI_BUNDLE), css(ACCOUNT_BUNDLE)];
@@ -125,6 +126,44 @@ function stepPanel(steps: AccountStep[], heading = 'How it works'): Panel {
         ),
       )}
     </ol>`,
+  };
+}
+
+function statsPanel(opts: {
+  coursesInProgress: number;
+  certificates: number;
+  memberSince?: string;
+}): Panel {
+  const rows: { icon: string; value: string; label: string }[] = [
+    {
+      icon: '📚',
+      value: String(opts.coursesInProgress),
+      label: `course${opts.coursesInProgress === 1 ? '' : 's'} in progress`,
+    },
+    {
+      icon: '★',
+      value: String(opts.certificates),
+      label: `certificate${opts.certificates === 1 ? '' : 's'} earned`,
+    },
+  ];
+
+  if (opts.memberSince) {
+    rows.push({ icon: '◔', value: opts.memberSince, label: 'member since' });
+  }
+
+  return {
+    heading: 'At a glance',
+    markup: html`<ul class="account-perks">
+      ${join(
+        rows.map(
+          (row) =>
+            html`<li class="account-perk">
+              <span class="perk-icon" aria-hidden="true">${row.icon}</span>
+              <div><b>${row.value}</b><span>${row.label}</span></div>
+            </li>`,
+        ),
+      )}
+    </ul>`,
   };
 }
 
@@ -361,6 +400,7 @@ export interface AccountPageState {
   hasPassword?: boolean;
   linkSent?: boolean;
   error?: string;
+  memberSince?: string;
 }
 
 export function accountPage({
@@ -370,6 +410,7 @@ export function accountPage({
   hasPassword = true,
   linkSent,
   error,
+  memberSince,
 }: AccountPageState): string {
   const certRows = certificates.map(
     (certificate) =>
@@ -381,18 +422,26 @@ export function accountPage({
       </a>`,
   );
 
-  const courseRows = courses.map(
-    (course) =>
-      html`<a class="account-cert" href="${course.href}">
-        <span class="account-cert-mark" aria-hidden="true"
-          >${course.done}/${course.total}</span
-        >
-        <div>
-          <b>${course.title}</b
-          ><span>${course.total - course.done} left to read</span>
+  const courseRows = courses.map((course) => {
+    const pct =
+      course.total > 0 ? Math.round((course.done / course.total) * 100) : 0;
+
+    return html`<a class="account-cert account-course" href="${course.href}">
+      <span class="account-cert-mark" aria-hidden="true"
+        >${course.done}/${course.total}</span
+      >
+      <div class="account-course-body">
+        <b>${course.title}</b>
+        <span>${course.total - course.done} left to read</span>
+        <div class="account-progress-track">
+          <div
+            class="account-progress-fill"
+            style="width:${pct}%"
+          ></div>
         </div>
-      </a>`,
-  );
+      </div>
+    </a>`;
+  });
 
   const main = html`<div class="account-main">
     <div class="account-head">
@@ -459,7 +508,13 @@ export function accountPage({
     </form>
   </div>`;
 
-  return page(account.name, shell(main), AccountRoutes.home.template);
+  const panel = statsPanel({
+    coursesInProgress: courses.length,
+    certificates: certificates.length,
+    memberSince: memberSince ? formatDay(memberSince) : undefined,
+  });
+
+  return page(account.name, shell(main, panel), AccountRoutes.home.template);
 }
 
 export interface RecoverState extends FormState {

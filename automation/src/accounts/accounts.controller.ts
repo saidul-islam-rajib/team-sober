@@ -197,6 +197,7 @@ export class AccountsController {
       certificates,
       courses,
       hasPassword: Boolean(account.secret),
+      memberSince: account.createdAt,
       ...extra,
     });
   }

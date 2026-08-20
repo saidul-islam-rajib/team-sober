@@ -58,11 +58,12 @@ export const ACCOUNT_PUBLIC_CSS = `
 .account-step b { display: block; font-size: 0.9rem; color: var(--ink); margin-bottom: 0.2rem; }
 .account-step span { font-size: 0.82rem; color: var(--ink-3); line-height: 1.55; }
 
-.account-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.4rem; }
+.account-head { display: flex; align-items: center; gap: 1.1rem; margin-bottom: 0.4rem; }
 .account-avatar {
-  flex: none; width: 3rem; height: 3rem; border-radius: 50%;
-  display: grid; place-items: center; font-weight: 700; font-size: 1.05rem;
+  flex: none; width: 3.75rem; height: 3.75rem; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700; font-size: 1.3rem;
   background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 .account-section {
   font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.09em;
@@ -82,6 +83,14 @@ export const ACCOUNT_PUBLIC_CSS = `
 }
 .account-cert b { display: block; font-size: 0.94rem; color: var(--ink); }
 .account-cert span { font-size: 0.78rem; color: var(--ink-3); }
+
+.account-course { align-items: flex-start; }
+.account-course-body { flex: 1; min-width: 0; }
+.account-progress-track {
+  height: 6px; border-radius: 999px; background: var(--surface-2);
+  overflow: hidden; margin-top: 0.55rem;
+}
+.account-progress-fill { height: 100%; background: var(--accent); border-radius: 999px; }
 .account-empty {
   font-size: 0.87rem; color: var(--ink-3); line-height: 1.6;
   padding: 1.1rem; border: 1px dashed var(--border); border-radius: 12px;
