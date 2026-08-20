@@ -1,0 +1,67 @@
+name: Develop CI/CD
+
+on:
+  push:
+    branches: [develop]
+
+defaults:
+  run:
+    working-directory: automation
+
+jobs:
+  ci:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: automation/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npx eslint "{src,apps,libs,test}/**/*.ts"
+
+      - name: Typecheck
+        run: npx tsc -p tsconfig.build.json --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  deploy:
+    name: Deploy to production
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            REPO_URL="https://github.com/${{ github.repository }}.git"
+            DEPLOY_DIR="${{ vars.DEPLOY_DIR || '/opt/team-sober-gha' }}"
+
+            if [ -d "$DEPLOY_DIR/.git" ]; then
+              cd "$DEPLOY_DIR"
+              git fetch origin develop
+              git checkout develop
+              git reset --hard origin/develop
+            else
+              git clone --branch develop "$REPO_URL" "$DEPLOY_DIR"
+              cd "$DEPLOY_DIR"
+            fi
+
+            sh scripts/gha-deploy.sh

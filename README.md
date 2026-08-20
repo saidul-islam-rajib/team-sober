@@ -486,6 +486,12 @@ and validated, and is reachable through a policy getter, with nothing else to wi
 
 Triggered by a push to `main` via GitHub webhook, with SCM polling as a fallback.
 
+A second, independent pipeline also deploys from `develop`: GitHub Actions
+runs CI, then SSHes into the same host and runs the equivalent of the stages
+below via [`scripts/gha-deploy.sh`](scripts/gha-deploy.sh). The two can race
+if pushed to around the same time — see
+[deploy/README.md §5](deploy/README.md#5-github-actions-deploy-from-develop).
+
 | Stage | What it does |
 |---|---|
 | **Preflight** | Prunes containers, images and build cache *before* the build needs space; fails with a clear message below 1 GB free |

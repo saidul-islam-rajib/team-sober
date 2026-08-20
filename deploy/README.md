@@ -252,6 +252,55 @@ overridable, for checking a non-default port or a slower host.
 
 ---
 
+## 5. GitHub Actions deploy from `develop`
+
+[`.github/workflows/develop-ci-cd.yml`](../.github/workflows/develop-ci-cd.yml)
+lints, typechecks, tests and builds on every push to `develop`, then — if
+that passes — SSHes into the **same EC2 host Jenkins deploys to** and runs
+[`scripts/gha-deploy.sh`](../scripts/gha-deploy.sh), which mirrors the
+Jenkinsfile's Build/Backup/Deploy/Verify stages: same image and container
+names, same blue/green ports, same `/etc/caddy/upstream.conf`. That's
+deliberate — a from-scratch reimplementation would drift from what Jenkins
+expects and could leave the two pipelines fighting over the same containers.
+
+**This means `main` (via Jenkins) and `develop` (via this workflow) can each
+independently redeploy production.** Whichever finishes last wins, and a
+push to both around the same time can race. Nothing here prevents that —
+it's a real tradeoff of running two deploy paths to one host, not a bug.
+
+### One-time host setup
+
+Reuses the `jenkins` user's existing `docker` group membership and the
+`switch-upstream.sh` sudoers rule (from
+[`scripts/setup-jenkins-permissions.sh`](../scripts/setup-jenkins-permissions.sh))
+rather than provisioning a second user with its own permissions:
+
+```bash
+sudo -u jenkins ssh-keygen -t ed25519 -f /var/lib/jenkins/.ssh/gha_deploy -N ""
+sudo -u jenkins cat /var/lib/jenkins/.ssh/gha_deploy.pub \
+    | sudo -u jenkins tee -a /var/lib/jenkins/.ssh/authorized_keys
+```
+
+Put the **private** key (`/var/lib/jenkins/.ssh/gha_deploy`) into the GitHub
+secret below — never commit it.
+
+### GitHub repository configuration
+
+| Setting | Where | Value |
+|---|---|---|
+| `DEPLOY_SSH_HOST` | Secret | The EC2 instance's address |
+| `DEPLOY_SSH_USER` | Secret | `jenkins` |
+| `DEPLOY_SSH_KEY` | Secret | The private key generated above |
+| `DEPLOY_SSH_PORT` | Secret (optional) | Defaults to `22` |
+| `DEPLOY_DIR` | Variable (optional) | Defaults to `/opt/team-sober-gha` — a separate checkout from Jenkins' own workspace, so the two never fight over the same working directory |
+
+Settings → Secrets and variables → Actions, in the GitHub repo. Until these
+are set, the `deploy` job fails at the SSH step with an auth error — the
+`ci` job (lint/typecheck/test/build) still runs and reports on every push
+regardless.
+
+---
+
 ## Verifying the whole thing
 
 ```bash
