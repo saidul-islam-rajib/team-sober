@@ -19,11 +19,13 @@ import { AuthGuard } from '../auth/auth.guard';
 import { LoginThrottleService } from '../auth/login-throttle.service';
 import { AdminsService } from '../admins/admins.service';
 import { normaliseEmail } from '../accounts/account.rules';
+import { SettingsService } from '../settings/settings.service';
 import {
   dashboardPage,
   editorPage,
   loginPage,
 } from '../views/admin/posts.pages';
+import { accountHubPage } from '../views/admin/account.page';
 import { ContentPolicy } from '../shared/config/policies';
 
 function clientKey(req: Request): string {
@@ -37,6 +39,7 @@ export class AdminController {
     private readonly auth: AuthService,
     private readonly throttle: LoginThrottleService,
     private readonly admins: AdminsService,
+    private readonly settings: SettingsService,
   ) {}
 
   @Get('login')
@@ -111,6 +114,13 @@ export class AdminController {
       secure: req.secure,
     });
     res.redirect('/');
+  }
+
+  @Get('admin/account')
+  @UseGuards(AuthGuard)
+  @Header('Content-Type', 'text/html')
+  account(): string {
+    return accountHubPage({ settings: this.settings.get() });
   }
 
   @Get('admin')

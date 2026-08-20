@@ -349,23 +349,26 @@ ${head}
     height: 2px; background: var(--accent); border-radius: 2px;
   }
 
-  .nav-group { position: relative; }
+  .nav-group { position: relative; display: inline-flex; align-items: center; }
   .nav-group-toggle { position: absolute; opacity: 0; pointer-events: none; }
   .nav-group-label {
-    display: inline-flex; align-items: center; gap: 0.3rem;
+    display: inline-block; line-height: inherit;
     color: var(--ink-3); font-weight: 600; cursor: pointer;
     padding: 0.2rem 0; white-space: nowrap; user-select: none;
   }
   .nav-group-label:hover { color: var(--ink); }
   .nav-group-label.active { color: var(--ink); }
-  .nav-group-label::after { content: "▾"; font-size: 0.65em; transition: transform .18s; }
+  .nav-group-label::after {
+    content: "▾"; display: inline-block; margin-left: 0.3rem;
+    font-size: 0.65em; transition: transform .18s;
+  }
   .nav-group-toggle:checked ~ .nav-group-label::after { transform: rotate(180deg); }
   .nav-group-toggle:focus-visible ~ .nav-group-label {
     outline: 2px solid var(--accent); outline-offset: 2px;
   }
 
   .nav-group-menu {
-    position: absolute; top: calc(100% + 0.65rem); left: 0; z-index: 30;
+    position: absolute; top: calc(100% + 0.2rem); left: 0; z-index: 30;
     display: flex; flex-direction: column; gap: 0.15rem; min-width: 160px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
     padding: 0.4rem; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
@@ -379,6 +382,28 @@ ${head}
   .nav-group-menu a:hover { background: var(--surface-2); }
   .nav-group-menu a.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
   .nav-group-menu a.active::after { display: none; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .nav-group:hover .nav-group-menu,
+    .nav-group:focus-within .nav-group-menu {
+      opacity: 1; visibility: visible; transform: translateY(0);
+    }
+  }
+
+  .nav-profile { margin-left: 0.3rem; gap: 0.15rem; }
+  .nav-profile-link { display: flex; align-items: center; }
+  .nav-profile .mark { width: 32px; height: 32px; font-size: 0.82rem; }
+  .nav-profile-name { display: none; }
+  .nav-profile-caret {
+    padding: 0.3rem; border-radius: 6px;
+  }
+  .nav-profile-caret:hover { background: var(--surface-2); }
+  .nav-profile-caret::after { margin-left: 0; }
+  .nav-profile-menu { right: 0; left: auto; min-width: 200px; }
+  .nav-profile-who { padding: 0.55rem 0.6rem 0.7rem; border-bottom: 1px solid var(--border); margin-bottom: 0.3rem; }
+  .nav-profile-who b { display: block; font-size: 0.86rem; color: var(--ink); }
+  .nav-profile-who span { font-size: 0.76rem; color: var(--ink-3); }
+  .nav-profile-menu .nav-profile-signout { border-top: 1px solid var(--border); margin-top: 0.3rem; padding-top: 0.45rem; }
 
   .nav-head, .nav-overlay { display: none; }
 
@@ -477,6 +502,17 @@ ${head}
       padding: 0.8rem 1.1rem 0.8rem 1.8rem; border-radius: 0;
       border-bottom: 1px solid var(--border);
     }
+
+    .nav-profile { width: 100%; margin-left: 0; border-bottom: 1px solid var(--border); }
+    .nav-profile-link { flex: 1; padding: 0.95rem 1.1rem; gap: 0.7rem; color: var(--ink-2); }
+    .nav-profile-link:hover { background: var(--surface-2); color: var(--ink); }
+    .nav-profile-link.active { color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+    .nav-profile-name { display: inline-block; font-size: 0.96rem; }
+    .nav-profile-caret {
+      width: auto; padding: 0.95rem 1.1rem;
+      border-bottom: 0; justify-content: center;
+    }
+    .nav-profile-menu { min-width: 0; }
   }
 
   /* Freeze the page behind an open drawer. */
@@ -875,15 +911,33 @@ const ADMIN_NAV_GROUPS: [string, string, [string, string][]][] = [
       ['/admin/newsletter', 'Newsletter'],
     ],
   ],
-  [
-    'nav-site',
-    'Site',
-    [
-      ['/admin/settings', 'Settings'],
-      ['/admin/system', 'System'],
-    ],
-  ],
 ];
+
+const ACCOUNT_HUB_PATH = '/admin/account';
+
+function profileMenu(path: string): string {
+  const s = getSettings();
+  const active =
+    path === ACCOUNT_HUB_PATH ||
+    path.startsWith('/admin/settings') ||
+    path.startsWith('/admin/system');
+
+  return `<div class="nav-group nav-profile">
+    <input type="checkbox" id="nav-profile" class="nav-group-toggle"${active ? ' checked' : ''} />
+    <a href="${ACCOUNT_HUB_PATH}" class="nav-profile-link${active ? ' active' : ''}" aria-label="Account">
+      ${avatarMark(s.avatarUrl, s.authorName)}
+      <span class="nav-profile-name">${esc(s.authorName)}</span>
+    </a>
+    <label for="nav-profile" class="nav-group-label nav-profile-caret" aria-hidden="true"></label>
+    <div class="nav-group-menu nav-profile-menu">
+      <div class="nav-profile-who"><b>${esc(s.authorName)}</b><span>${esc(s.authorRole)}</span></div>
+      ${navLink(ACCOUNT_HUB_PATH, 'Account', path)}
+      ${navLink('/admin/settings', 'Settings', path)}
+      ${navLink('/admin/system', 'System', path)}
+      <div class="nav-profile-signout"><a href="/logout">Sign out</a></div>
+    </div>
+  </div>`;
+}
 
 export function adminNav(path = '/admin'): string {
   return [
@@ -893,6 +947,6 @@ export function adminNav(path = '/admin'): string {
     ...ADMIN_NAV_GROUPS.map(([id, label, items]) =>
       navGroup(id, label, items, path),
     ),
-    '<a href="/logout">Sign out</a>',
+    profileMenu(path),
   ].join('');
 }
