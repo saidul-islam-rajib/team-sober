@@ -348,6 +348,38 @@ ${head}
     content: ""; position: absolute; left: 0; right: 0; bottom: -3px;
     height: 2px; background: var(--accent); border-radius: 2px;
   }
+
+  .nav-group { position: relative; }
+  .nav-group-toggle { position: absolute; opacity: 0; pointer-events: none; }
+  .nav-group-label {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    color: var(--ink-3); font-weight: 600; cursor: pointer;
+    padding: 0.2rem 0; white-space: nowrap; user-select: none;
+  }
+  .nav-group-label:hover { color: var(--ink); }
+  .nav-group-label.active { color: var(--ink); }
+  .nav-group-label::after { content: "▾"; font-size: 0.65em; transition: transform .18s; }
+  .nav-group-toggle:checked ~ .nav-group-label::after { transform: rotate(180deg); }
+  .nav-group-toggle:focus-visible ~ .nav-group-label {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  .nav-group-menu {
+    position: absolute; top: calc(100% + 0.65rem); left: 0; z-index: 30;
+    display: flex; flex-direction: column; gap: 0.15rem; min-width: 160px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 0.4rem; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+    opacity: 0; visibility: hidden; transform: translateY(-4px);
+    transition: opacity .16s, transform .16s, visibility .16s;
+  }
+  .nav-group-toggle:checked ~ .nav-group-menu {
+    opacity: 1; visibility: visible; transform: translateY(0);
+  }
+  .nav-group-menu a { padding: 0.5rem 0.6rem; border-radius: 8px; }
+  .nav-group-menu a:hover { background: var(--surface-2); }
+  .nav-group-menu a.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .nav-group-menu a.active::after { display: none; }
+
   .nav-head, .nav-overlay { display: none; }
 
   /*
@@ -426,6 +458,24 @@ ${head}
     .nav a.active:not(.btn) {
       color: var(--accent); background: var(--surface-2);
       box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .nav-group-label {
+      width: 100%; padding: 0.95rem 1.1rem; color: var(--ink-2);
+      border-bottom: 1px solid var(--border); justify-content: space-between;
+    }
+    .nav-group-label:hover { background: var(--surface-2); color: var(--ink); }
+    .nav-group-label.active { color: var(--accent); }
+    .nav-group-menu {
+      position: static; opacity: 1; visibility: visible; transform: none;
+      max-height: 0; overflow: hidden; border: 0; box-shadow: none;
+      border-radius: 0; padding: 0; gap: 0; background: var(--surface-2);
+      transition: max-height .2s ease;
+    }
+    .nav-group-toggle:checked ~ .nav-group-menu { max-height: 20rem; }
+    .nav-group-menu a {
+      padding: 0.8rem 1.1rem 0.8rem 1.8rem; border-radius: 0;
+      border-bottom: 1px solid var(--border);
     }
   }
 
@@ -636,17 +686,35 @@ ${body}
   var toggle = document.getElementById('nav-toggle');
   if (!toggle) return;
 
+  var groupToggles = document.querySelectorAll('.nav-group-toggle');
+
+  function closeGroups() {
+    groupToggles.forEach(function (box) { box.checked = false; });
+  }
+
+  groupToggles.forEach(function (box) {
+    box.addEventListener('change', function () {
+      if (!box.checked) return;
+      groupToggles.forEach(function (other) {
+        if (other !== box) other.checked = false;
+      });
+    });
+  });
+
   document.getElementById('site-nav').addEventListener('click', function (ev) {
     if (ev.target.tagName === 'A') toggle.checked = false;
   });
 
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape') toggle.checked = false;
+    if (ev.key !== 'Escape') return;
+    toggle.checked = false;
+    closeGroups();
   });
 
   document.addEventListener('click', function (ev) {
     // The overlay is inside the header, so an outside click means the page.
     if (!ev.target.closest('.site-header')) toggle.checked = false;
+    if (!ev.target.closest('.nav-group')) closeGroups();
   });
 
   // Scroll lock for browsers without :has() support.
@@ -762,20 +830,69 @@ export function defaultNav(path = '/'): string {
   ].join('');
 }
 
+function navGroup(
+  id: string,
+  label: string,
+  items: [string, string][],
+  path: string,
+): string {
+  const active = items.some(
+    ([href]) => path === href || path.startsWith(`${href}/`),
+  );
+
+  return `<div class="nav-group">
+    <input type="checkbox" id="${id}" class="nav-group-toggle"${active ? ' checked' : ''} />
+    <label for="${id}" class="nav-group-label${active ? ' active' : ''}">${label}</label>
+    <div class="nav-group-menu">
+      ${items.map(([href, text]) => navLink(href, text, path)).join('')}
+    </div>
+  </div>`;
+}
+
+const ADMIN_NAV_GROUPS: [string, string, [string, string][]][] = [
+  [
+    'nav-content',
+    'Content',
+    [
+      ['/admin/projects', 'Projects'],
+      ['/admin/tutorials', 'Tutorials'],
+      ['/admin/about', 'About'],
+    ],
+  ],
+  [
+    'nav-people',
+    'People',
+    [
+      ['/admin/accounts', 'Accounts'],
+      ['/admin/admins', 'Admins'],
+    ],
+  ],
+  [
+    'nav-engagement',
+    'Engagement',
+    [
+      ['/admin/comments', 'Comments'],
+      ['/admin/newsletter', 'Newsletter'],
+    ],
+  ],
+  [
+    'nav-site',
+    'Site',
+    [
+      ['/admin/settings', 'Settings'],
+      ['/admin/system', 'System'],
+    ],
+  ],
+];
+
 export function adminNav(path = '/admin'): string {
   return [
     '<a href="/">View site</a>',
     `<a href="/admin" class="${path === '/admin' ? 'active' : ''}">Dashboard</a>`,
-    navLink('/admin/projects', 'Projects', path),
-    navLink('/admin/tutorials', 'Tutorials', path),
-    navLink('/admin/accounts', 'Accounts', path),
-    navLink('/admin/admins', 'Admins', path),
-    navLink('/admin/comments', 'Comments', path),
-    navLink('/admin/newsletter', 'Newsletter', path),
-    navLink('/admin/system', 'System', path),
-    navLink('/admin/about', 'About', path),
-    navLink('/admin/settings', 'Settings', path),
     navLink('/admin/posts', 'Write', path, '/admin/posts/new'),
+    ...ADMIN_NAV_GROUPS.map(([id, label, items]) =>
+      navGroup(id, label, items, path),
+    ),
     '<a href="/logout">Sign out</a>',
   ].join('');
 }
