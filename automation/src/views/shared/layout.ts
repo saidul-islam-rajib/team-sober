@@ -358,11 +358,6 @@ ${head}
   }
   .nav-group-label:hover { color: var(--ink); }
   .nav-group-label.active { color: var(--ink); }
-  .nav-group-label::after {
-    content: "▾"; display: inline-block; margin-left: 0.3rem;
-    font-size: 0.65em; transition: transform .18s;
-  }
-  .nav-group-toggle:checked ~ .nav-group-label::after { transform: rotate(180deg); }
   .nav-group-toggle:focus-visible ~ .nav-group-label {
     outline: 2px solid var(--accent); outline-offset: 2px;
   }
@@ -390,15 +385,10 @@ ${head}
     }
   }
 
-  .nav-profile { margin-left: 0.3rem; gap: 0.15rem; }
+  .nav-profile { margin-left: 0.3rem; }
   .nav-profile-link { display: flex; align-items: center; }
   .nav-profile .mark { width: 32px; height: 32px; font-size: 0.82rem; }
   .nav-profile-name { display: none; }
-  .nav-profile-caret {
-    padding: 0.3rem; border-radius: 6px;
-  }
-  .nav-profile-caret:hover { background: var(--surface-2); }
-  .nav-profile-caret::after { margin-left: 0; }
   .nav-profile-menu { right: 0; left: auto; min-width: 200px; }
   .nav-profile-who { padding: 0.55rem 0.6rem 0.7rem; border-bottom: 1px solid var(--border); margin-bottom: 0.3rem; }
   .nav-profile-who b { display: block; font-size: 0.86rem; color: var(--ink); }
@@ -508,10 +498,6 @@ ${head}
     .nav-profile-link:hover { background: var(--surface-2); color: var(--ink); }
     .nav-profile-link.active { color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
     .nav-profile-name { display: inline-block; font-size: 0.96rem; }
-    .nav-profile-caret {
-      width: auto; padding: 0.95rem 1.1rem;
-      border-bottom: 0; justify-content: center;
-    }
     .nav-profile-menu { min-width: 0; }
   }
 
@@ -963,12 +949,10 @@ function profileMenu(path: string): string {
     path.startsWith('/admin/system');
 
   return `<div class="nav-group nav-profile">
-    <input type="checkbox" id="nav-profile" class="nav-group-toggle"${active ? ' checked' : ''} />
     <a href="${ACCOUNT_HUB_PATH}" class="nav-profile-link${active ? ' active' : ''}" aria-label="Account">
       ${avatarMark(s.avatarUrl, s.authorName)}
       <span class="nav-profile-name">${esc(s.authorName)}</span>
     </a>
-    <label for="nav-profile" class="nav-group-label nav-profile-caret" aria-hidden="true"></label>
     <div class="nav-group-menu nav-profile-menu">
       <div class="nav-profile-who"><b>${esc(s.authorName)}</b><span>${esc(s.authorRole)}</span></div>
       ${navLink(ACCOUNT_HUB_PATH, 'Account', path)}
