@@ -27,6 +27,7 @@ interface LayoutOptions {
 
 import {
   APPLE_TOUCH_ICON_SIZE,
+  APP_NAME,
   MANIFEST_THEME_COLOR,
 } from '../../seo/manifest.model';
 import { initials } from '../../settings/settings.model';
@@ -206,7 +207,7 @@ export function layout({
 <meta name="theme-color" content="${MANIFEST_THEME_COLOR}" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="${esc(s.siteTitle)}" />
+<meta name="apple-mobile-web-app-title" content="${APP_NAME}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -630,6 +631,35 @@ ${head}
   }
   .pwa-toast-dismiss:hover { color: var(--ink); }
 
+  /* ---------- install banner ---------- */
+  .pwa-banner {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    font-size: 0.86rem; color: var(--ink-2);
+  }
+  .pwa-banner[hidden] { display: none; }
+  .pwa-banner-row {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.6rem clamp(1rem, 2.4vw, 1.45rem);
+  }
+  .pwa-banner-icon {
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    display: grid; place-items: center; overflow: hidden;
+  }
+  .pwa-banner-icon svg { width: 100%; height: 100%; }
+  .pwa-banner-title { flex: 1; font-weight: 600; color: var(--ink); }
+  .pwa-banner-dismiss {
+    background: transparent; border: 0; cursor: pointer; color: var(--ink-3);
+    font-size: 1.2rem; line-height: 1; padding: 0.2rem; flex-shrink: 0;
+  }
+  .pwa-banner-dismiss:hover { color: var(--ink); }
+  .pwa-banner-steps {
+    max-width: 1100px; margin: 0 auto;
+    padding: 0 clamp(1rem, 2.4vw, 1.45rem) 0.75rem 3.65rem;
+  }
+  .pwa-banner-steps[hidden] { display: none; }
+  .pwa-banner-steps p { color: var(--ink-3); font-size: 0.84rem; }
+
   @media (max-width: 640px) {
     .page-title { font-size: 1.6rem; }
     .header-inner { min-height: 60px; padding: 0.7rem 0.9rem; }
@@ -641,6 +671,15 @@ ${head}
 </style>
 </head>
 <body>
+  <div class="pwa-banner" id="pwa-banner" hidden>
+    <div class="pwa-banner-row">
+      <span class="pwa-banner-icon">${footerLogo()}</span>
+      <span class="pwa-banner-title" id="pwa-banner-title">Install ${APP_NAME}</span>
+      <button type="button" class="btn btn-sm" id="pwa-banner-action">Install</button>
+      <button type="button" class="pwa-banner-dismiss" id="pwa-banner-dismiss" aria-label="Dismiss">&times;</button>
+    </div>
+    <div class="pwa-banner-steps" id="pwa-banner-steps" hidden></div>
+  </div>
   <header class="site-header">
     <div class="header-inner">
       <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Open menu" />
@@ -790,56 +829,6 @@ ${body}
     if (handler) handler();
   });
 
-  var deferredPrompt = null;
-
-  window.addEventListener('beforeinstallprompt', function (ev) {
-    ev.preventDefault();
-    deferredPrompt = ev;
-    show('Install this app for quick access?', 'Install', function () {
-      var prompted = deferredPrompt;
-      deferredPrompt = null;
-      if (prompted) prompted.prompt();
-    });
-  });
-
-  window.addEventListener('appinstalled', function () {
-    deferredPrompt = null;
-    hide();
-  });
-
-  function iosInstallHintDismissed() {
-    try {
-      return localStorage.getItem('pwa-ios-hint-dismissed') === '1';
-    } catch (error) {
-      return false;
-    }
-  }
-
-  function dismissIosInstallHint() {
-    try {
-      localStorage.setItem('pwa-ios-hint-dismissed', '1');
-    } catch (error) {
-      // Private browsing can refuse localStorage; the hint just reappears.
-    }
-  }
-
-  var isStandalone =
-    window.navigator.standalone === true ||
-    window.matchMedia('(display-mode: standalone)').matches;
-
-  var isIOS =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-  if (isIOS && !isStandalone && !iosInstallHintDismissed()) {
-    show(
-      'Install this app: tap Share, then "Add to Home Screen".',
-      'Got it',
-      dismissIosInstallHint,
-      dismissIosInstallHint,
-    );
-  }
-
   if (!('serviceWorker' in navigator)) return;
 
   window.addEventListener('load', function () {
@@ -861,6 +850,107 @@ ${body}
       console.warn('Service worker registration failed', error);
     });
   });
+})();
+</script>
+<script>
+(function () {
+  var banner = document.getElementById('pwa-banner');
+  var action = document.getElementById('pwa-banner-action');
+  var dismiss = document.getElementById('pwa-banner-dismiss');
+  var steps = document.getElementById('pwa-banner-steps');
+  if (!banner) return;
+
+  function isDismissed() {
+    try {
+      return localStorage.getItem('pwa-banner-dismissed') === '1';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function setDismissed() {
+    try {
+      localStorage.setItem('pwa-banner-dismissed', '1');
+    } catch (error) {
+      // Private browsing can refuse localStorage; the banner just reappears.
+    }
+  }
+
+  function hide() {
+    banner.hidden = true;
+    steps.hidden = true;
+  }
+
+  dismiss.addEventListener('click', function () {
+    hide();
+    setDismissed();
+  });
+
+  var isStandalone =
+    window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+
+  if (isStandalone || isDismissed()) return;
+
+  var isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // Desktop Safari on macOS: no beforeinstallprompt, no touch, "MacIntel".
+  var isMacSafari =
+    !isIOS &&
+    navigator.platform === 'MacIntel' &&
+    /^((?!chrome|android|crios|fxios|edg|opr).)*safari/i.test(navigator.userAgent);
+
+  var deferredPrompt = null;
+
+  function showAsInstall() {
+    action.textContent = 'Install';
+    action.onclick = function () {
+      var prompted = deferredPrompt;
+      deferredPrompt = null;
+      hide();
+      if (prompted) prompted.prompt();
+    };
+    banner.hidden = false;
+  }
+
+  function showAsHow(stepsHtml) {
+    steps.innerHTML = stepsHtml;
+    action.textContent = 'How';
+    action.onclick = function () {
+      var willShow = steps.hidden;
+      steps.hidden = !willShow;
+      action.textContent = willShow ? 'Hide' : 'How';
+    };
+    banner.hidden = false;
+  }
+
+  window.addEventListener('beforeinstallprompt', function (ev) {
+    ev.preventDefault();
+    deferredPrompt = ev;
+    showAsInstall();
+  });
+
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
+    hide();
+    setDismissed();
+  });
+
+  // Neither iOS nor desktop Safari ever fire beforeinstallprompt — Apple
+  // gives no programmatic install trigger there, only manual steps. Give
+  // the real event a moment first so Chromium browsers never see this
+  // fallback flash before showAsInstall replaces it.
+  window.setTimeout(function () {
+    if (deferredPrompt || !banner.hidden) return;
+
+    if (isIOS) {
+      showAsHow('<p>Tap the Share icon, then "Add to Home Screen".</p>');
+    } else if (isMacSafari) {
+      showAsHow('<p>Open the File menu, then "Add to Dock".</p>');
+    }
+  }, 1500);
 })();
 </script>
 ${scriptTags(scripts)}

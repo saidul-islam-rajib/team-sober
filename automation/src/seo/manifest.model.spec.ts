@@ -1,39 +1,22 @@
 import { DEFAULT_SETTINGS, SiteSettings } from '../settings/settings.model';
 import {
   APP_ICON_SIZES,
+  APP_NAME,
   MANIFEST_BACKGROUND_COLOR,
   MANIFEST_THEME_COLOR,
   buildManifest,
-  shortName,
 } from './manifest.model';
 
 function settings(overrides: Partial<SiteSettings> = {}): SiteSettings {
   return { ...DEFAULT_SETTINGS, ...overrides };
 }
 
-describe('shortName', () => {
-  it('keeps a title that already fits', () => {
-    expect(shortName('Team Sober')).toBe('Team Sober');
-  });
-
-  it('trims a longer title and marks the cut with an ellipsis', () => {
-    const result = shortName('A Much Longer Site Title Than Fits');
-
-    expect(result.length).toBeLessThanOrEqual(12);
-    expect(result.endsWith('…')).toBe(true);
-  });
-
-  it('trims surrounding whitespace before measuring', () => {
-    expect(shortName('  Team Sober  ')).toBe('Team Sober');
-  });
-});
-
 describe('buildManifest', () => {
-  it('names the app from site settings, not a fixed string', () => {
+  it('names the installed app a fixed string, regardless of the editable site title', () => {
     const manifest = buildManifest(settings({ siteTitle: 'Custom Title' }));
 
-    expect(manifest.name).toBe('Custom Title');
-    expect(manifest.short_name).toBe(shortName('Custom Title'));
+    expect(manifest.name).toBe(APP_NAME);
+    expect(manifest.short_name).toBe(APP_NAME);
   });
 
   it('prefers the tagline for the description', () => {
