@@ -891,13 +891,17 @@ ${body}
     window.matchMedia('(display-mode: standalone)').matches;
 
   if (isStandalone || isDismissed()) return;
+  
+  var isChromium = !!navigator.userAgentData;
 
   var isIOS =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    !isChromium &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
   // Desktop Safari on macOS: no beforeinstallprompt, no touch, "MacIntel".
   var isMacSafari =
+    !isChromium &&
     !isIOS &&
     navigator.platform === 'MacIntel' &&
     /^((?!chrome|android|crios|fxios|edg|opr).)*safari/i.test(navigator.userAgent);
