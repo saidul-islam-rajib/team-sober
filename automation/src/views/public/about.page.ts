@@ -10,6 +10,8 @@ import {
 } from '../../about/about.model';
 import { getSettings } from '../../settings/settings.store';
 import { avatarMark, esc, IMAGE_SKELETON, layout } from '../shared/layout';
+import { LiveProject } from '../../live-projects/live-project.model';
+import { LIVE_PROJECTS_CSS, liveProjectCard } from './live-projects.page';
 
 const ABOUT_CSS = `
 <style>
@@ -461,6 +463,7 @@ export function aboutPage(
   introHtml: string,
   isAdmin = false,
   milestoneHtml: string[] = [],
+  liveProjects: LiveProject[] = [],
 ): string {
   const s = getSettings();
 
@@ -471,6 +474,16 @@ export function aboutPage(
   <section class="about-section">
     <h2>About</h2>
     <div class="about-intro">${introHtml}</div>
+  </section>`);
+  }
+
+  if (liveProjects.length) {
+    sections.push(`
+  <section class="about-section">
+    <h2>Live projects</h2>
+    <div class="live-grid">
+      ${liveProjects.map(liveProjectCard).join('')}
+    </div>
   </section>`);
   }
 
@@ -613,6 +626,7 @@ export function aboutPage(
 
   const body = `
 ${ABOUT_CSS}
+${liveProjects.length ? LIVE_PROJECTS_CSS : ''}
 ${IMAGE_SKELETON}
   <header class="about-hero">
     ${avatarMark(s.avatarUrl, s.siteTitle, 'about-avatar')}

@@ -1011,6 +1011,7 @@ const ADMIN_NAV_GROUPS: [string, string, [string, string][]][] = [
     'Content',
     [
       ['/admin/projects', 'Projects'],
+      ['/admin/live-projects', 'Live projects'],
       ['/admin/tutorials', 'Tutorials'],
       ['/admin/about', 'About'],
     ],

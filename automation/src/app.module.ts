@@ -9,6 +9,7 @@ import { ImagesController } from './uploads/images.controller';
 import { SettingsController } from './settings/settings.controller';
 import { AboutController } from './about/about.controller';
 import { ProjectsController } from './projects/projects.controller';
+import { LiveProjectsController } from './live-projects/live-projects.controller';
 import { TutorialsController } from './tutorials/tutorials.controller';
 import { TutorialsAdminController } from './tutorials/tutorials.admin.controller';
 import { SeoController } from './seo/seo.controller';
@@ -18,6 +19,7 @@ import { ImagesService } from './uploads/images.service';
 import { SettingsService } from './settings/settings.service';
 import { AboutService } from './about/about.service';
 import { ProjectsService } from './projects/projects.service';
+import { LiveProjectsService } from './live-projects/live-projects.service';
 import { TutorialsService } from './tutorials/tutorials.service';
 import { EnrolmentService } from './tutorials/enrolment.service';
 import { CertificatesService } from './tutorials/certificates.service';
@@ -52,6 +54,7 @@ import { SystemAdminController } from './system/system.admin.controller';
     SettingsController,
     AboutController,
     ProjectsController,
+    LiveProjectsController,
     AccountsAdminController,
     AccountsController,
     AdminsController,
@@ -75,6 +78,7 @@ import { SystemAdminController } from './system/system.admin.controller';
     SettingsService,
     AboutService,
     ProjectsService,
+    LiveProjectsService,
     TutorialsService,
     EnrolmentService,
     CertificatesService,

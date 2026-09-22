@@ -24,6 +24,7 @@ import {
 import { renderMarkdown } from '../posts/markdown';
 import { aboutPage } from '../views/public/about.page';
 import { aboutAdminPage } from '../views/admin/about.page';
+import { LiveProjectsService } from '../live-projects/live-projects.service';
 
 interface AboutForm {
   headline?: string;
@@ -48,6 +49,7 @@ export class AboutController {
   constructor(
     private readonly about: AboutService,
     private readonly auth: AuthService,
+    private readonly liveProjects: LiveProjectsService,
   ) {}
 
   @Get('about')
@@ -63,6 +65,7 @@ export class AboutController {
       renderMarkdown(content.intro),
       this.auth.verifyToken(token),
       milestones.map((m) => renderMarkdown(m.description)),
+      this.liveProjects.findAll(),
     );
   }
 
