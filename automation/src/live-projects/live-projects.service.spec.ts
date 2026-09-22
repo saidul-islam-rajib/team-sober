@@ -65,14 +65,25 @@ describe('LiveProjectsService', () => {
 
   it('updates fields and regenerates the slug when the title changes', async () => {
     const created = await service.create({ title: 'Old Title' });
-    const updated = await service.update(created.id, {
-      title: 'New Title',
-      description: 'Updated blurb.',
-    });
 
-    expect(updated.slug).toBe('new-title');
-    expect(updated.description).toBe('Updated blurb.');
-    expect(updated.updatedAt).not.toBe(created.createdAt);
+    // Advance the clock so updatedAt is guaranteed to differ from createdAt —
+    // both use Date.now(), which can otherwise land in the same millisecond
+    // on a fast machine and make this assertion flaky.
+    jest.useFakeTimers({ doNotFake: ['nextTick'] });
+    jest.setSystemTime(new Date(Date.now() + 1000));
+
+    try {
+      const updated = await service.update(created.id, {
+        title: 'New Title',
+        description: 'Updated blurb.',
+      });
+
+      expect(updated.slug).toBe('new-title');
+      expect(updated.description).toBe('Updated blurb.');
+      expect(updated.updatedAt).not.toBe(created.createdAt);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('removes a project', async () => {
