@@ -15,6 +15,7 @@ import { OG_CARD_HEIGHT, OG_CARD_WIDTH } from '../../seo/og-card.svg';
 import { CommentPolicy, ContentPolicy } from '../../shared/config/policies';
 import { PROSE_BUNDLE } from '../shared/styles/prose.styles';
 import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
+import { MERMAID_SCRIPT } from '../shared/scripts/mermaid';
 
 const FEED_CSS = `
 <style>
@@ -692,7 +693,7 @@ ${PROSE_BUNDLE}
   return layout({
     title: `${post.title} — ${getSettings().authorName}`,
     description: post.subtitle || excerpt(post.content, 150),
-    body: body + LIGHTBOX_SCRIPT + IMAGE_SKELETON,
+    body: body + LIGHTBOX_SCRIPT + MERMAID_SCRIPT + IMAGE_SKELETON,
     variant: 'default',
     path: `/post/${post.slug}`,
     image: contentImage ?? `/og/post/${post.slug}.png`,

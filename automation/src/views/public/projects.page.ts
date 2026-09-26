@@ -10,6 +10,7 @@ import { getSettings } from '../../settings/settings.store';
 import { esc, IMAGE_SKELETON, layout } from '../shared/layout';
 import { PROSE_BUNDLE } from '../shared/styles/prose.styles';
 import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
+import { MERMAID_SCRIPT } from '../shared/scripts/mermaid';
 
 const PROJECTS_CSS = `
 <style>
@@ -352,7 +353,7 @@ ${PROJECTS_HEAD}
     title: `${project.title} — ${s.siteTitle}`,
     description:
       project.description || `${project.title}, a project by ${s.siteTitle}.`,
-    body: body + LIGHTBOX_SCRIPT,
+    body: body + LIGHTBOX_SCRIPT + MERMAID_SCRIPT,
     path: `/projects/${project.slug}`,
     image: project.coverUrl,
     ogType: 'article',

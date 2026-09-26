@@ -145,4 +145,41 @@ describe('renderMarkdown', () => {
       expect(html).toMatch(/<h2[^>]*>Heading<\/h2>/);
     });
   });
+
+  describe('mermaid', () => {
+    it('renders a mermaid fence as <pre class="mermaid"> with escaped source', () => {
+      const html = renderMarkdown(
+        '```mermaid\nflowchart LR\n  A["a<br/>b"] --> B\n```',
+      );
+
+      expect(html).toContain('<pre class="mermaid">');
+      expect(html).toContain('A[&quot;a&lt;br/&gt;b&quot;] --&gt; B');
+      expect(html).not.toContain('<code');
+    });
+
+    it('leaves other code fences as ordinary code blocks', () => {
+      const html = renderMarkdown('```ts\nconst a = 1;\n```');
+
+      expect(html).toContain('<code class="language-ts">');
+      expect(html).not.toContain('class="mermaid"');
+    });
+
+    it('does not turn == inside a fence into a highlight', () => {
+      const html = renderMarkdown(
+        '```mermaid\nflowchart LR\n  A ==> B ==> C\n```\n\n==marked==',
+      );
+
+      expect(html).toContain('A ==&gt; B ==&gt; C');
+      expect(html).toContain('<mark>marked</mark>');
+    });
+
+    it('handles CRLF line endings', () => {
+      const html = renderMarkdown(
+        '```mermaid\r\nflowchart LR\r\n  A ==> B ==> C\r\n```\r\n',
+      );
+
+      expect(html).toContain('<pre class="mermaid">');
+      expect(html).not.toContain('<mark>');
+    });
+  });
 });
