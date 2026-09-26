@@ -1,3 +1,4 @@
+import { COVER_FALLBACK, coverSrc } from '../shared/project-cover';
 import {
   Project,
   STATUS_LABELS,
@@ -62,12 +63,6 @@ const PROJECTS_CSS = `
   .proj-cover {
     display: block; width: 100%; aspect-ratio: 2 / 1; object-fit: cover;
     border-bottom: 1px solid var(--border);
-  }
-  .proj-cover-fallback {
-    display: grid; place-items: center; aspect-ratio: 2 / 1;
-    background: linear-gradient(135deg, var(--surface-2), var(--bg));
-    border-bottom: 1px solid var(--border);
-    font-family: var(--serif); font-size: 1.5rem; color: var(--ink-3);
   }
   .proj-body { padding: 1rem 1.1rem 1.15rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
   .proj-title { font-size: 1.08rem; line-height: 1.3; }
@@ -147,9 +142,7 @@ const PROJECTS_HEAD = `${PROJECTS_CSS}
 ${IMAGE_SKELETON}`;
 
 function cover(project: Project, cls = 'proj-cover'): string {
-  return project.coverUrl
-    ? `<img class="${cls} skel" src="${esc(project.coverUrl)}" alt="${esc(project.title)}" loading="lazy" />`
-    : `<div class="proj-cover-fallback">${esc(project.title.slice(0, 2).toUpperCase())}</div>`;
+  return `<img class="${cls} skel" src="${esc(coverSrc(project.coverUrl))}" alt="${esc(project.title)}" loading="lazy" ${COVER_FALLBACK} />`;
 }
 
 function projectCard(project: Project): string {
@@ -311,19 +304,6 @@ ${PROJECTS_HEAD}
         ${project.repoUrl ? `<a class="btn" href="${esc(project.repoUrl)}" target="_blank" rel="noopener noreferrer">View on ${esc(repoHost(project.repoUrl))} ↗</a>` : ''}
         ${project.demoUrl ? `<a class="btn btn-ghost" href="${esc(project.demoUrl)}" target="_blank" rel="noopener noreferrer">Live demo ↗</a>` : ''}
       </div>
-
-      ${project.coverUrl ? `<img class="proj-detail-cover skel" src="${esc(project.coverUrl)}" alt="${esc(project.title)}" />` : ''}
-
-      ${
-        detailedHtml && project.showDetailed !== false
-          ? `<div class="prose proj-detailed">${detailedHtml}</div>`
-          : ''
-      }
-
-      ${facet('Technologies', 'tech', project.technologies)}
-      ${facet('Topics', 'topics', project.topics)}
-      ${facet('Keywords', 'keywords', project.keywords)}
-      ${facet('Tags', 'tags', project.tags)}
     </div>
 
     <aside>
@@ -338,6 +318,21 @@ ${PROJECTS_HEAD}
         </dl>
       </div>
     </aside>
+  </div>
+
+  <div class="detail-full">
+    ${project.coverUrl ? `<img class="proj-detail-cover skel" src="${esc(project.coverUrl)}" alt="${esc(project.title)}" ${COVER_FALLBACK} />` : ''}
+
+    ${
+      detailedHtml && project.showDetailed !== false
+        ? `<div class="prose proj-detailed">${detailedHtml}</div>`
+        : ''
+    }
+
+    ${facet('Technologies', 'tech', project.technologies)}
+    ${facet('Topics', 'topics', project.topics)}
+    ${facet('Keywords', 'keywords', project.keywords)}
+    ${facet('Tags', 'tags', project.tags)}
   </div>
 
   ${

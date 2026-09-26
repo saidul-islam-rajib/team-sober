@@ -1,3 +1,4 @@
+import { COVER_FALLBACK, coverSrc } from '../shared/project-cover';
 import {
   DETAILED_WORD_LIMIT,
   PROJECT_STATUSES,
@@ -185,7 +186,7 @@ ${CSS}
       ${projects
         .map(
           (p) => `<tr>
-        <td class="col-thumb">${p.coverUrl ? `<img class="p-thumb" src="${esc(p.coverUrl)}" alt="" loading="lazy" />` : '<div class="p-thumb"></div>'}</td>
+        <td class="col-thumb"><img class="p-thumb" src="${esc(coverSrc(p.coverUrl))}" alt="" loading="lazy" ${COVER_FALLBACK} /></td>
         <td>
           <span class="t">${esc(p.title)}${p.featured ? ' ★' : ''}</span>
           <span class="s">${esc(p.description.slice(0, 90) || '—')}</span>
@@ -359,7 +360,7 @@ ${CSS}
         <div class="panel">
           <h3>Cover</h3>
           <img class="cover-preview" id="cover-preview"
-               src="${v(project?.coverUrl)}" alt="" />
+               src="${esc(coverSrc(project?.coverUrl))}" alt="" ${COVER_FALLBACK} />
           <input type="hidden" id="coverUrl" name="coverUrl" value="${v(project?.coverUrl)}" />
           <input type="file" id="cover-file" accept="image/*" hidden />
           <button type="button" class="btn btn-ghost btn-sm" id="cover-btn">Upload cover</button>
