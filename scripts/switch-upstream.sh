@@ -77,6 +77,8 @@ reverse_proxy 127.0.0.1:${PORT} {
 	health_uri /health
 	health_interval 10s
 	health_timeout 2s
+	lb_try_duration 15s
+	lb_try_interval 250ms
 }
 EOF
 

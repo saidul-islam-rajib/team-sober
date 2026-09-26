@@ -1,16 +1,10 @@
 import katex from 'katex';
 
-// Pinned to the installed katex so server markup and CSS always match.
 const KATEX_CSS = `https://cdn.jsdelivr.net/npm/katex@${katex.version}/dist/katex.min.css`;
 
 const MERMAID_JS =
   'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 
-/*
- * Browser side of renderMarkdown: heading "#" links, copy buttons on code
- * blocks and Mermaid diagrams. window.enhanceMarkdown(root) is exposed so the
- * editor preview can run it again after swapping in new HTML.
- */
 export const MARKDOWN_SCRIPT = `
 <script>
 (function () {
@@ -110,7 +104,6 @@ export const MARKDOWN_SCRIPT = `
 
 export const KATEX_STYLESHEET = `<link rel="stylesheet" href="${KATEX_CSS}" crossorigin="anonymous" />`;
 
-// Page assets for rendered markdown; KaTeX's CSS only when there is math.
 export function markdownAssets(html: string): string {
   return (
     (html.includes('class="katex') ? KATEX_STYLESHEET : '') + MARKDOWN_SCRIPT

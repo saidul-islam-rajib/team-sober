@@ -172,8 +172,6 @@ export function markdownEditor({
   </div>`;
 }
 
-// Lets the preview render math, diagrams and code tools like the live page.
-// Include once on any page that uses MARKDOWN_EDITOR_SCRIPT.
 export const MARKDOWN_PREVIEW_ASSETS = KATEX_STYLESHEET + MARKDOWN_SCRIPT;
 
 export const MARKDOWN_EDITOR_SCRIPT = `

@@ -16,6 +16,7 @@ import { CommentPolicy, ContentPolicy } from '../../shared/config/policies';
 import { LIGHTBOX_STYLES, PROSE_BUNDLE } from '../shared/styles/prose.styles';
 import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
 import { markdownAssets } from '../shared/scripts/markdown';
+import { formatStamp } from '../../shared/format/dates';
 
 const FEED_CSS = `
 <style>
@@ -531,9 +532,15 @@ export function postPage(
     canComment?: boolean;
     viewerAccountId?: string;
     commentError?: string;
+    preview?: 'draft' | 'scheduled';
   } = {},
 ): string {
-  const { canComment = false, viewerAccountId, commentError } = options;
+  const {
+    canComment = false,
+    viewerAccountId,
+    commentError,
+    preview,
+  } = options;
   const mins = readingMinutes(post.content);
   const words = wordCount(post.content);
 
@@ -595,6 +602,7 @@ ${PROSE_BUNDLE}
 </style>
 
   <a href="/" style="font-size:.86rem;color:var(--ink-3)">← All posts</a>
+  ${preview ? previewBanner(post, preview) : ''}
 
   <article>
     <header class="article-head">
@@ -696,6 +704,7 @@ ${PROSE_BUNDLE}
     body: body + LIGHTBOX_SCRIPT + markdownAssets(body) + IMAGE_SKELETON,
     variant: 'default',
     path: `/post/${post.slug}`,
+    noindex: Boolean(preview),
     image: contentImage ?? `/og/post/${post.slug}.png`,
     imageWidth: contentImage ? undefined : OG_CARD_WIDTH,
     imageHeight: contentImage ? undefined : OG_CARD_HEIGHT,
@@ -960,13 +969,73 @@ export function tagsPage(opts: {
   });
 }
 
-export function notFoundPage(): string {
+function previewBanner(post: Post, kind: 'draft' | 'scheduled'): string {
+  const when =
+    kind === 'scheduled'
+      ? `It goes live on <time datetime="${esc(post.publishedAt)}" data-local-time>${esc(formatStamp(post.publishedAt))} UTC</time>. Readers see a 404 until then.`
+      : 'Readers see a 404 until you publish it.';
+
+  return `<div class="preview-banner" role="status">
+    <strong>${kind === 'scheduled' ? 'Scheduled' : 'Draft'} — only you can see this page.</strong>
+    <span>${when}</span>
+    <a href="/admin/posts/${esc(post.id)}/edit">Edit post</a>
+  </div>
+  <style>
+    .preview-banner {
+      display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; align-items: baseline;
+      margin: 1rem 0 1.5rem; padding: 0.75rem 1rem; border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
+      background: color-mix(in srgb, var(--warn) 10%, transparent);
+      font-size: 0.9rem; color: var(--ink);
+    }
+    .preview-banner a { margin-left: auto; color: var(--accent); font-weight: 600; }
+  </style>
+  <script>
+  document.querySelectorAll('[data-local-time]').forEach(function (el) {
+    var at = new Date(el.getAttribute('datetime'));
+    if (isNaN(at.getTime())) return;
+    el.textContent = at.toLocaleString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit'
+    });
+  });
+  </script>`;
+}
+
+export function notFoundPage(recent: Post[] = []): string {
+  const list = recent.length
+    ? `<div class="nf-recent">
+        <h2>Latest posts</h2>
+        <ul>${recent
+          .map(
+            (p) =>
+              `<li><a href="/post/${esc(p.slug)}">${esc(p.title)}</a><span>${esc(formatDate(p.publishedAt))}</span></li>`,
+          )
+          .join('')}</ul>
+      </div>`
+    : '';
+
   return layout({
     title: `Not found — ${getSettings().authorName}`,
-    body: `<div class="empty">
+    noindex: true,
+    body: `<style>
+      .nf-search { display: flex; gap: 0.5rem; max-width: 420px; margin: 1.5rem auto 0; }
+      .nf-search input { flex: 1; min-width: 0; }
+      .nf-recent { max-width: 520px; margin: 2rem auto 0; text-align: left; }
+      .nf-recent h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 0.6rem; }
+      .nf-recent ul { list-style: none; }
+      .nf-recent li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0; border-top: 1px solid var(--border); }
+      .nf-recent li span { color: var(--ink-3); font-size: 0.85rem; white-space: nowrap; }
+    </style>
+    <div class="empty">
       <h1 class="page-title">404</h1>
-      <p>That post does not exist, or it is still a draft.</p>
-      <p style="margin-top:1.25rem"><a class="btn" href="/">Back to the blog</a></p>
+      <p>We couldn't find that page. It may have moved, or it isn't published yet.</p>
+      <form class="nf-search" action="/search" method="get" role="search">
+        <input type="search" name="q" placeholder="Search posts, tutorials and tags…" aria-label="Search" />
+        <button class="btn" type="submit">Search</button>
+      </form>
+      ${list}
+      <p style="margin-top:1.5rem"><a class="btn btn-ghost" href="/">Back to the blog</a></p>
     </div>`,
   });
 }

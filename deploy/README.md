@@ -301,6 +301,43 @@ regardless.
 
 ---
 
+## 6. "We're updating" page
+
+While a new release starts, Caddy holds each request for up to 15 seconds
+(`lb_try_duration`) instead of failing it, so most visitors never notice a
+deploy. If the app is still not answering after that, visitors get a branded
+"We're shipping an update" page (HTTP 503 with `Retry-After`) instead of a bare
+error. The page checks every few seconds and reloads itself once the site is
+back.
+
+One-time setup on the host:
+
+```bash
+sudo mkdir -p /etc/caddy/maintenance
+sudo cp deploy/maintenance/index.html /etc/caddy/maintenance/index.html
+sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+The next deploy rewrites `/etc/caddy/upstream.conf` with the new
+`lb_try_duration` settings; to get them immediately, also run
+`sudo cp deploy/upstream.conf /etc/caddy/upstream.conf` and fix its port to
+match the running container.
+
+### Planned maintenance
+
+Show the page to everyone on purpose, for example while restoring a backup:
+
+```bash
+sudo touch /etc/caddy/maintenance/ON     # page on, no reload needed
+sudo rm /etc/caddy/maintenance/ON        # back to normal
+```
+
+`/health` keeps answering, so monitoring and deploy checks are unaffected.
+
+---
+
 ## Verifying the whole thing
 
 ```bash

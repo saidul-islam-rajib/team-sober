@@ -70,6 +70,7 @@ export interface DateTimeFieldOptions {
   name: string;
   label: string;
   value: string;
+  iso?: string;
   futureLabel?: string;
   pastLabel?: string;
   hint?: string;
@@ -87,6 +88,7 @@ export function dateTimeField({
   name,
   label,
   value,
+  iso,
   futureLabel = 'Upcoming',
   pastLabel = 'Passed',
   hint,
@@ -95,7 +97,7 @@ export function dateTimeField({
   const [date = '', time = ''] = value.split('T');
   const stamp = formatStamp(value);
 
-  return `<div class="field" data-datetime
+  return `<div class="field" data-datetime${iso ? ` data-iso="${esc(iso)}"` : ''}
        data-future-label="${esc(futureLabel)}" data-past-label="${esc(pastLabel)}">
     <label for="${esc(name)}-date">${esc(label)}</label>
 
@@ -182,8 +184,7 @@ export const DATETIME_FIELD_SCRIPT = `
         if (readout) readout.textContent = 'No date set';
         if (state) state.hidden = true;
       } else {
-        // Keep the wire format the server already understands.
-        hidden.value = dateInput.value + 'T' + (timeInput.value || '00:00');
+        hidden.value = at.toISOString();
 
         if (readout) {
           readout.textContent = at.toLocaleString('en-US', {
@@ -242,6 +243,13 @@ export const DATETIME_FIELD_SCRIPT = `
         if (make) set(make());
       });
     });
+
+    var stored = root.getAttribute('data-iso');
+    var storedAt = stored ? new Date(stored) : null;
+    if (storedAt && !isNaN(storedAt.getTime())) {
+      dateInput.value = dayOf(storedAt);
+      timeInput.value = pad(storedAt.getHours()) + ':' + pad(storedAt.getMinutes());
+    }
 
     dateInput.addEventListener('change', sync);
     dateInput.addEventListener('input', sync);

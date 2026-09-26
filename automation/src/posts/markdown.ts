@@ -18,10 +18,6 @@ function math(tex: string, displayMode: boolean): string {
   });
 }
 
-/*
- * Per-render state. renderMarkdown is synchronous, so a module-level value
- * reset at the start of every call is safe.
- */
 let footnotes = new Map<string, string>();
 
 const renderer = new marked.Renderer();
@@ -36,11 +32,6 @@ renderer.image = (href: string | null, title: string | null, text: string) =>
     .filter(Boolean)
     .join(' ');
 
-/*
- * ```mermaid  -> <pre class="mermaid">, drawn in the browser (MARKDOWN_SCRIPT)
- * ```math     -> KaTeX display math, rendered here
- * ```ts title="app.ts" -> highlighted here, with an optional file name
- */
 renderer.code = (code: string, infostring: string | undefined) => {
   const info = (infostring ?? '').trim();
   const lang = info.split(/\s+/)[0].toLowerCase();
@@ -65,7 +56,6 @@ renderer.code = (code: string, infostring: string | undefined) => {
     : `${pre}\n`;
 };
 
-// Wide tables scroll inside their own box instead of the whole page.
 renderer.table = (header: string, body: string) =>
   `<div class="table-wrap"><table>\n<thead>\n${header}</thead>\n${body ? `<tbody>${body}</tbody>` : ''}</table></div>\n`;
 
@@ -77,8 +67,6 @@ const CALLOUTS: Record<string, string> = {
   caution: 'Caution',
 };
 
-// GitHub alerts: > [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION],
-// optionally followed by a custom title on the same line.
 const CALLOUT_HEAD =
   /^<p>\[!(note|tip|important|warning|caution)\][ \t]*((?:(?!<br>|\n|<\/p>).)*)(?:<br>\n?|\n)?/i;
 
@@ -120,7 +108,6 @@ const highlight: marked.TokenizerAndRendererExtension = {
   },
 };
 
-// $$ ... $$ on its own lines.
 const blockMath: marked.TokenizerAndRendererExtension = {
   name: 'blockMath',
   level: 'block',
@@ -134,11 +121,6 @@ const blockMath: marked.TokenizerAndRendererExtension = {
     `<div class="math-block">${math((token as TextToken).text, true)}</div>\n`,
 };
 
-/*
- * $...$ inline. Pandoc's rule keeps prices safe: the opening $ must be
- * followed by a non-space, the closing $ preceded by a non-space and not
- * followed by a digit, so "$5 and $10" stays text. \$ is a literal dollar.
- */
 const inlineMath: marked.TokenizerAndRendererExtension = {
   name: 'inlineMath',
   level: 'inline',
@@ -151,7 +133,6 @@ const inlineMath: marked.TokenizerAndRendererExtension = {
   renderer: (token) => math((token as TextToken).text, false),
 };
 
-// [^id]: text (continuation lines indented by 2+ spaces or a tab).
 const footnoteDef: marked.TokenizerAndRendererExtension = {
   name: 'footnoteDef',
   level: 'block',
@@ -169,10 +150,6 @@ const footnoteDef: marked.TokenizerAndRendererExtension = {
   renderer: () => '',
 };
 
-/*
- * [^id]. Rendered as a placeholder and resolved once the whole document is
- * known, so a reference to a missing note falls back to plain text.
- */
 const footnoteRef: marked.TokenizerAndRendererExtension = {
   name: 'footnoteRef',
   level: 'inline',
@@ -186,7 +163,6 @@ const footnoteRef: marked.TokenizerAndRendererExtension = {
     `<!--fnref:${encodeURIComponent((token as TextToken).text)}-->`,
 };
 
-// [[toc]] on its own line: a list of the document's h2/h3 headings.
 const toc: marked.TokenizerAndRendererExtension = {
   name: 'toc',
   level: 'block',
@@ -206,8 +182,6 @@ marked.use({
 
 const COLUMN_BLOCK = /^:::columns[ \t]*\n([\s\S]*?)^:::[ \t]*$/gm;
 
-// Headings keep marked's default output (<h2 id="slug">); the "#" links are
-// added in the browser (MARKDOWN_SCRIPT) so feeds and excerpts stay clean.
 const HEADING = /<h([23]) id="([^"]+)">([\s\S]*?)<\/h\1>/g;
 
 function tableOfContents(html: string): string {

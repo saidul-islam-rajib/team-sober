@@ -702,7 +702,12 @@ ${CSS}
 
   return layout({
     title: editing ? 'Edit lesson · Admin' : 'New lesson · Admin',
-    body: body + MARKDOWN_EDITOR_SCRIPT + MARKDOWN_PREVIEW_ASSETS + CHIP_JS + IMAGE_SKELETON,
+    body:
+      body +
+      MARKDOWN_EDITOR_SCRIPT +
+      MARKDOWN_PREVIEW_ASSETS +
+      CHIP_JS +
+      IMAGE_SKELETON,
     nav: adminNav('/admin/tutorials'),
     variant: 'admin',
     path: '/admin/tutorials',

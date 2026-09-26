@@ -430,6 +430,7 @@ ${ADMIN_CSS}
             name: 'publishedAt',
             label: 'Publish date and time',
             value: toLocalInput(post?.publishedAt ?? new Date().toISOString()),
+            iso: post?.publishedAt ?? new Date().toISOString(),
             futureLabel: 'Scheduled',
             pastLabel: 'Live',
             hintId: 'schedule-hint',

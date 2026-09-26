@@ -13,7 +13,29 @@ team-sober.com {
 		-Server
 	}
 
+	@maintenance {
+		file {
+			root /etc/caddy/maintenance
+			try_files /ON
+		}
+		not path /health
+	}
+	error @maintenance 503
+
 	import /etc/caddy/upstream.conf
+
+	handle_errors {
+		@down expression `{err.status_code} in [502, 503, 504]`
+		handle @down {
+			root * /etc/caddy/maintenance
+			rewrite * /index.html
+			header Cache-Control "no-store"
+			header Retry-After "30"
+			file_server {
+				status 503
+			}
+		}
+	}
 }
 
 www.team-sober.com {

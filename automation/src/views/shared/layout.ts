@@ -75,7 +75,6 @@ export function avatarMark(
     ? `/img/${avatarUrl.slice('/uploads/'.length)}?w=200`
     : avatarUrl;
 
-  // zoom: LIGHTBOX_SCRIPT opens the original, uncropped upload on click.
   const zoomAttrs = zoom
     ? ` data-zoom="${esc(avatarUrl)}" tabindex="0" role="button" title="View photo full size"`
     : '';

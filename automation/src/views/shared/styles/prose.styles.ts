@@ -51,7 +51,6 @@ export const PROSE_STYLES = `
   .prose li > ul, .prose li > ol { margin-top: 0.4rem; }
   .prose [id] { scroll-margin-top: 5.5rem; }
 
-  /* ---------- heading "#" links (added by MARKDOWN_SCRIPT) ---------- */
   .prose .heading-anchor {
     margin-left: 0.4rem; color: var(--ink-3); text-decoration: none;
     font-family: var(--sans); font-weight: 400; opacity: 0;
@@ -61,7 +60,6 @@ export const PROSE_STYLES = `
   .prose .heading-anchor:focus-visible { opacity: 1; }
   @media (hover: none) { .prose .heading-anchor { opacity: 0.45; } }
 
-  /* ---------- tables ---------- */
   .prose .table-wrap {
     overflow-x: auto; -webkit-overflow-scrolling: touch;
     border: 1px solid var(--border); border-radius: 10px;
@@ -71,14 +69,12 @@ export const PROSE_STYLES = `
   .prose tr:last-child td { border-bottom: 0; }
   .prose td code, .prose th code { white-space: nowrap; }
 
-  /* ---------- task lists ---------- */
   .prose li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.3rem; }
   .prose li > input[type="checkbox"] {
     width: 1rem; height: 1rem; margin-right: 0.45rem;
     vertical-align: -0.12em; accent-color: var(--accent);
   }
 
-  /* ---------- callouts: > [!NOTE] ---------- */
   .prose .callout {
     border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px;
     padding: 0.85rem 1.1rem; font-size: 1.02rem;
@@ -110,7 +106,6 @@ export const PROSE_STYLES = `
     .prose .callout-caution .callout-title { color: #f85149; }
   }
 
-  /* ---------- details / kbd ---------- */
   .prose details {
     border: 1px solid var(--border); border-radius: 10px;
     padding: 0.7rem 1rem; background: var(--surface);
@@ -123,7 +118,6 @@ export const PROSE_STYLES = `
     border-bottom-width: 2px; border-radius: 5px; padding: 0.08em 0.4em;
   }
 
-  /* ---------- code blocks ---------- */
   .prose .code-figure { margin-left: 0; margin-right: 0; }
   .prose .code-figure figcaption {
     font-family: var(--mono); font-size: 0.8rem; color: var(--ink-3);
@@ -144,7 +138,6 @@ export const PROSE_STYLES = `
   @media (hover: none) { .prose .copy-code { opacity: 0.85; } }
   .prose .copy-code:hover { color: var(--ink); }
 
-  /* highlight.js tokens, GitHub-like, light + dark */
   .prose .hljs { color: var(--ink); }
   .prose .hljs-comment, .prose .hljs-quote { color: #6a737d; font-style: italic; }
   .prose .hljs-keyword, .prose .hljs-selector-tag, .prose .hljs-literal,
@@ -179,7 +172,6 @@ export const PROSE_STYLES = `
     .prose .hljs-deletion { color: #ffdcd7; background: #67060c; }
   }
 
-  /* ---------- diagrams and math ---------- */
   .prose pre.mermaid {
     background: none; border: 0; padding: 0; text-align: center;
     font-family: var(--mono); white-space: pre-wrap; overflow-x: auto;
@@ -188,7 +180,6 @@ export const PROSE_STYLES = `
   .prose .math-block { overflow-x: auto; overflow-y: hidden; padding: 0.25rem 0; }
   .prose .katex { font-size: 1.05em; }
 
-  /* ---------- table of contents: [[toc]] ---------- */
   .prose .toc {
     border: 1px solid var(--border); border-radius: 10px;
     background: var(--surface); padding: 0.9rem 1.2rem; font-family: var(--sans);
@@ -200,7 +191,6 @@ export const PROSE_STYLES = `
   .prose .toc a { text-decoration: none; }
   .prose .toc a:hover { text-decoration: underline; }
 
-  /* ---------- footnotes: [^1] ---------- */
   .prose .fnref { font-family: var(--sans); font-size: 0.72em; line-height: 0; }
   .prose .fnref a { text-decoration: none; padding: 0 0.1em; }
   .prose .footnotes {
@@ -238,8 +228,6 @@ export const LIGHTBOX_STYLES = `
   .lightbox {
     position: fixed; inset: 0; z-index: 100;
     background: rgba(0, 0, 0, 0.9);
-    /* margin:auto on the image centres it and still lets it scroll when
-       shown at real size (justify/align centre would clip the edges). */
     display: flex; overflow: auto; overscroll-behavior: contain;
     padding: 2rem; cursor: zoom-out;
   }
@@ -263,7 +251,6 @@ export const LIGHTBOX_STYLES = `
     text-align: center; color: rgba(255, 255, 255, 0.85); font-size: 0.82rem;
     background: rgba(0, 0, 0, 0.55); padding: 0.3rem 0.8rem; border-radius: 999px;
   }
-  /* The author avatar opens in the lightbox too. */
   img.avatar-img[data-zoom] { cursor: zoom-in; }
   img.avatar-img[data-zoom]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 `;

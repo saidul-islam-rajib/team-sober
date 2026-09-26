@@ -8,13 +8,14 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { formatDate, Post, readingMinutes } from './post.model';
+import { formatDate, isScheduled, Post, readingMinutes } from './post.model';
 import { PostsService } from './posts.service';
 import { TutorialsService } from '../tutorials/tutorials.service';
 import { ProjectsService } from '../projects/projects.service';
 import { CommentsService } from '../comments/comments.service';
 import { CurrentAccountService } from '../accounts/current-account.service';
 import { renderMarkdown } from './markdown';
+import { AuthService } from '../auth/auth.service';
 import {
   homePage,
   notFoundPage,
@@ -30,6 +31,7 @@ export class PostsController {
     private readonly projects: ProjectsService,
     private readonly comments: CommentsService,
     private readonly current: CurrentAccountService,
+    private readonly auth: AuthService,
   ) {}
 
   private feedStats() {
@@ -132,7 +134,20 @@ export class PostsController {
     res.type('html');
 
     if (!post) {
-      res.status(404).send(notFoundPage());
+      const hidden = this.posts.findAll().find((p) => p.slug === slug);
+      const token = req.cookies?.[AuthService.COOKIE] as string | undefined;
+
+      if (hidden && this.auth.verifyToken(token)) {
+        res.setHeader('Cache-Control', 'no-store');
+        res.send(
+          postPage(hidden, [], renderMarkdown(hidden.content), [], {
+            preview: isScheduled(hidden) ? 'scheduled' : 'draft',
+          }),
+        );
+        return;
+      }
+
+      res.status(404).send(notFoundPage(published.slice(0, 3)));
       return;
     }
 

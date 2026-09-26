@@ -1,10 +1,3 @@
-/*
- * Full-size image viewer. Opens for article images (.prose img) and for any
- * image marked data-zoom (the author avatar), showing data-zoom's URL when it
- * points at a larger original. Clicking the picture toggles between fitting
- * the screen and its real size (scrollable); anything else closes it.
- * Needs LIGHTBOX_STYLES on the page.
- */
 export const LIGHTBOX_SCRIPT = `
 <script>
 (function () {
@@ -56,7 +49,6 @@ export const LIGHTBOX_SCRIPT = `
     hint.textContent = 'Click anywhere or press Esc to close';
     box.appendChild(hint);
 
-    // Only offer real-size zoom when the picture is bigger than the screen.
     full.addEventListener('load', function () {
       if (fitsAlready(full)) return;
       full.classList.add('can-zoom');
@@ -72,7 +64,6 @@ export const LIGHTBOX_SCRIPT = `
         ? 'Scroll to look around · click the image to fit the screen'
         : 'Click the image to see it full size · Esc to close';
       if (actual) {
-        // Start centred on the picture rather than its top-left corner.
         box.scrollLeft = (box.scrollWidth - box.clientWidth) / 2;
         box.scrollTop = (box.scrollHeight - box.clientHeight) / 2;
       }

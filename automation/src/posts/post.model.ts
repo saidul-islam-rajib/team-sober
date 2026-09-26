@@ -39,14 +39,20 @@ export function isScheduled(post: Post): boolean {
   );
 }
 
+export const CLOCK_SKEW_MS = 2 * 60 * 1000;
+
 export function parsePublishedAt(value?: string, fallback?: string): string {
   const raw = (value ?? '').trim();
   if (!raw) return fallback ?? new Date().toISOString();
 
   const parsed = Date.parse(raw);
-  return Number.isFinite(parsed)
-    ? new Date(parsed).toISOString()
-    : (fallback ?? new Date().toISOString());
+  if (!Number.isFinite(parsed)) return fallback ?? new Date().toISOString();
+
+  const now = Date.now();
+  const ahead = parsed - now;
+  return ahead > 0 && ahead <= CLOCK_SKEW_MS
+    ? new Date(now).toISOString()
+    : new Date(parsed).toISOString();
 }
 
 export function toLocalInput(iso: string): string {
