@@ -323,4 +323,29 @@ describe('renderMarkdown', () => {
       expect(renderMarkdown('y[^1]')).not.toContain('Old.');
     });
   });
+
+  describe('long tokens', () => {
+    it('lets long inline code break anywhere so it stays inside the page', () => {
+      const html = renderMarkdown(
+        '- `response body (200): {"items":[{"id":"01a0dcec","firstName":"M***"}]}`',
+      );
+
+      expect(html).toContain('<code class="code-long">');
+    });
+
+    it('leaves short inline code alone', () => {
+      expect(renderMarkdown('then `ended`.')).toContain('<code>ended</code>');
+    });
+
+    it('marks links with long unbroken text', () => {
+      const long = 'https://example.com/a/very/long/path/without/any/spaces';
+
+      expect(renderMarkdown(`[${long}](${long})`)).toContain(
+        `<a class="link-long" href="${long}">`,
+      );
+      expect(renderMarkdown('[short](https://example.com)')).toContain(
+        '<a href="https://example.com">short</a>',
+      );
+    });
+  });
 });

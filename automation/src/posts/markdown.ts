@@ -56,6 +56,21 @@ renderer.code = (code: string, infostring: string | undefined) => {
     : `${pre}\n`;
 };
 
+const plain = new marked.Renderer();
+const LONG_TOKEN = /\S{30,}/;
+
+renderer.codespan = (text: string) =>
+  LONG_TOKEN.test(text)
+    ? `<code class="code-long">${text}</code>`
+    : `<code>${text}</code>`;
+
+renderer.link = (href: string | null, title: string | null, text: string) => {
+  const html = plain.link(href, title, text);
+  return LONG_TOKEN.test(text.replace(/<[^>]+>/g, ''))
+    ? html.replace(/^<a /, '<a class="link-long" ')
+    : html;
+};
+
 renderer.table = (header: string, body: string) =>
   `<div class="table-wrap"><table>\n<thead>\n${header}</thead>\n${body ? `<tbody>${body}</tbody>` : ''}</table></div>\n`;
 

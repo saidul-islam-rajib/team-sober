@@ -5,12 +5,13 @@ export const PROSE_STYLES = `
     text-align: justify;
     hyphens: auto; -webkit-hyphens: auto;
     text-wrap: pretty;
+    overflow-wrap: break-word;
   }
   .prose h2 { font-size: 1.5rem; margin-top: 2.4rem; }
   .prose h3 { font-size: 1.22rem; margin-top: 2rem; }
   .prose ul, .prose ol { padding-left: 1.4rem; }
   .prose li + li { margin-top: 0.4rem; }
-  .prose a { color: var(--accent); text-decoration: underline; }
+  .prose a { color: var(--accent); text-decoration: underline; overflow-wrap: anywhere; }
   .prose strong { color: var(--ink); }
   .prose mark {
     background: color-mix(in srgb, var(--accent) 22%, transparent);
@@ -20,13 +21,21 @@ export const PROSE_STYLES = `
     font-family: var(--mono); font-size: 0.86em;
     background: var(--surface-2); border: 1px solid var(--border);
     padding: 0.1em 0.38em; border-radius: 5px; color: var(--ink);
+    overflow-wrap: anywhere; word-break: break-word;
   }
   .prose pre {
     background: var(--surface-2); border: 1px solid var(--border);
     border-radius: 10px; padding: 1rem 1.1rem; overflow-x: auto;
     font-size: 0.92rem;
   }
-  .prose pre code { background: none; border: 0; padding: 0; font-size: 0.88rem; }
+  .prose .code-long, .prose .link-long { word-break: break-all; }
+  @media (max-width: 640px) {
+    .prose p, .prose li { text-align: left; }
+  }
+  .prose pre code {
+    background: none; border: 0; padding: 0; font-size: 0.88rem;
+    overflow-wrap: normal; word-break: normal;
+  }
   .prose blockquote {
     border-left: 3px solid var(--border); padding-left: 1.1rem; color: var(--ink-3);
   }
