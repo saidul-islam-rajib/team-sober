@@ -22,7 +22,7 @@ import {
 } from '../shared/components';
 import { PROGRESS_TRACKER_SCRIPT } from '../shared/scripts/progress-tracker';
 import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
-import { MERMAID_SCRIPT } from '../shared/scripts/mermaid';
+import { markdownAssets } from '../shared/scripts/markdown';
 import { TUTORIALS_STYLES } from './tutorials.styles';
 
 const HEAD = TUTORIALS_STYLES;
@@ -366,7 +366,7 @@ export function tutorialPage(
       body +
       PROGRESS_TRACKER_SCRIPT +
       LIGHTBOX_SCRIPT +
-      MERMAID_SCRIPT +
+      markdownAssets(body) +
       IMAGE_SKELETON,
     path: `/tutorials/${subject.slug}/${tutorial.slug}`,
     ogType: 'article',

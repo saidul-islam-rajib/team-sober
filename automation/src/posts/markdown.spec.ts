@@ -160,7 +160,7 @@ describe('renderMarkdown', () => {
     it('leaves other code fences as ordinary code blocks', () => {
       const html = renderMarkdown('```ts\nconst a = 1;\n```');
 
-      expect(html).toContain('<code class="language-ts">');
+      expect(html).toContain('<code class="hljs language-ts">');
       expect(html).not.toContain('class="mermaid"');
     });
 
@@ -180,6 +180,147 @@ describe('renderMarkdown', () => {
 
       expect(html).toContain('<pre class="mermaid">');
       expect(html).not.toContain('<mark>');
+    });
+  });
+
+  describe('code blocks', () => {
+    it('highlights a known language on the server', () => {
+      const html = renderMarkdown('```csharp\nvar x = 1; // hi\n```');
+
+      expect(html).toContain('<pre class="code-block" data-lang="csharp">');
+      expect(html).toContain('<span class="hljs-keyword">var</span>');
+      expect(html).toContain('<span class="hljs-comment">// hi</span>');
+    });
+
+    it('escapes an unknown language instead of guessing', () => {
+      const html = renderMarkdown('```nope\n<script>x</script>\n```');
+
+      expect(html).toContain('&lt;script&gt;x&lt;/script&gt;');
+      expect(html).not.toContain('<script>');
+    });
+
+    it('escapes a block with no language', () => {
+      expect(renderMarkdown('```\na < b\n```')).toContain('a &lt; b');
+    });
+
+    it('shows a file name given as title=', () => {
+      const html = renderMarkdown('```ts title="app.ts"\nconst a = 1;\n```');
+
+      expect(html).toContain('<figcaption>app.ts</figcaption>');
+      expect(html).toContain('language-ts');
+    });
+  });
+
+  describe('math', () => {
+    it('renders inline math with KaTeX', () => {
+      const html = renderMarkdown('Energy $E = mc^2$ here.');
+
+      expect(html).toContain('class="katex"');
+      expect(html).not.toContain('$E');
+    });
+
+    it('renders $$ blocks and ```math fences as display math', () => {
+      expect(renderMarkdown('$$\n\\sum_{i=1}^n i\n$$')).toContain(
+        'katex-display',
+      );
+      expect(renderMarkdown('```math\nx^2\n```')).toContain('katex-display');
+    });
+
+    it('leaves prices, escaped dollars and inline code alone', () => {
+      const html = renderMarkdown(
+        'Costs $5 and $10, `$env:TEMP`, and \\$ plain.',
+      );
+
+      expect(html).not.toContain('katex');
+      expect(html).toContain('$5 and $10');
+      expect(html).toContain('<code>$env:TEMP</code>');
+      expect(html).toContain('$ plain');
+    });
+
+    it('shows a bad formula as an error instead of throwing', () => {
+      expect(() => renderMarkdown('$\\frac{$')).not.toThrow();
+    });
+  });
+
+  describe('callouts', () => {
+    it('turns a GitHub alert into a callout box', () => {
+      const html = renderMarkdown('> [!WARNING]\n> Be **careful**.');
+
+      expect(html).toContain(
+        '<div class="callout callout-warning" role="note">',
+      );
+      expect(html).toContain('<p class="callout-title">Warning</p>');
+      expect(html).toContain('<strong>careful</strong>');
+      expect(html).not.toContain('[!WARNING]');
+    });
+
+    it('uses a custom title written after the marker', () => {
+      const html = renderMarkdown('> [!TIP] Pro tip\n> Body.');
+
+      expect(html).toContain('<p class="callout-title">Pro tip</p>');
+      expect(html).toContain('<p>Body.</p>');
+    });
+
+    it('keeps an ordinary quote a blockquote', () => {
+      expect(renderMarkdown('> just a quote')).toContain('<blockquote>');
+    });
+  });
+
+  describe('structure', () => {
+    it('gives headings ids that match hand-written contents links', () => {
+      const html = renderMarkdown('## 1. The big picture');
+
+      expect(html).toContain('<h2 id="1-the-big-picture">');
+    });
+
+    it('wraps tables so wide ones scroll on phones', () => {
+      const html = renderMarkdown('| a | b |\n|---|---|\n| 1 | 2 |');
+
+      expect(html).toMatch(
+        /<div class="table-wrap"><table>[\s\S]*<\/table><\/div>/,
+      );
+    });
+
+    it('renders task lists as checkboxes', () => {
+      const html = renderMarkdown('- [x] done\n- [ ] todo');
+
+      expect(html).toContain('checked="" disabled="" type="checkbox"');
+    });
+
+    it('builds a table of contents for [[toc]]', () => {
+      const html = renderMarkdown('[[toc]]\n\n## One\n\n### Two **b**\n\ntext');
+
+      expect(html).toContain('<nav class="toc"');
+      expect(html).toContain('<a href="#one">One</a>');
+      expect(html).toContain('<li class="toc-h3"><a href="#two-b">Two b</a>');
+    });
+  });
+
+  describe('footnotes', () => {
+    it('numbers references and lists the notes at the end', () => {
+      const html = renderMarkdown(
+        'A[^a] and B[^b] and A again[^a].\n\n[^b]: Second.\n[^a]: First **note**.',
+      );
+
+      expect(html).toContain('<a id="fnref-a" href="#fn-a"');
+      expect(html).toContain('<a id="fnref-a-2" href="#fn-a"');
+      expect(html).toMatch(/fn-a"[^>]*>1<\/a>[\s\S]*fn-b"[^>]*>2<\/a>/);
+      expect(html).toContain(
+        '<li id="fn-a">First <strong>note</strong>. <a class="fn-back"',
+      );
+    });
+
+    it('leaves a reference to a missing note as text', () => {
+      const html = renderMarkdown('See[^missing].');
+
+      expect(html).toContain('See[^missing].');
+      expect(html).not.toContain('class="footnotes"');
+    });
+
+    it('does not leak notes from one render into the next', () => {
+      renderMarkdown('x[^1]\n\n[^1]: Old.');
+
+      expect(renderMarkdown('y[^1]')).not.toContain('Old.');
     });
   });
 });

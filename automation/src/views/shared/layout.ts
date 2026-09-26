@@ -65,6 +65,7 @@ export function avatarMark(
   avatarUrl: string,
   name: string,
   cls = 'mark',
+  zoom = false,
 ): string {
   if (!avatarUrl) {
     return `<span class="${cls}">${esc(initials(name))}</span>`;
@@ -74,8 +75,13 @@ export function avatarMark(
     ? `/img/${avatarUrl.slice('/uploads/'.length)}?w=200`
     : avatarUrl;
 
+  // zoom: LIGHTBOX_SCRIPT opens the original, uncropped upload on click.
+  const zoomAttrs = zoom
+    ? ` data-zoom="${esc(avatarUrl)}" tabindex="0" role="button" title="View photo full size"`
+    : '';
+
   return `<img class="${cls} avatar-img" src="${esc(src)}" alt="${esc(name)}"
-    width="200" height="200" decoding="async" fetchpriority="high" />`;
+    width="200" height="200" decoding="async" fetchpriority="high"${zoomAttrs} />`;
 }
 
 export const HTML_CACHE_CONTROL = 'no-cache, must-revalidate';

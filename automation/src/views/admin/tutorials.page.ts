@@ -17,6 +17,7 @@ import { IMAGE_SKELETON, adminNav, esc, layout } from '../shared/layout';
 import { emptyState, statusPill } from '../shared/components';
 import {
   MARKDOWN_EDITOR_SCRIPT,
+  MARKDOWN_PREVIEW_ASSETS,
   markdownEditor,
 } from '../shared/components/markdown-editor';
 import { CHIP_JS } from '../shared/scripts/chip-input';
@@ -701,7 +702,7 @@ ${CSS}
 
   return layout({
     title: editing ? 'Edit lesson · Admin' : 'New lesson · Admin',
-    body: body + MARKDOWN_EDITOR_SCRIPT + CHIP_JS + IMAGE_SKELETON,
+    body: body + MARKDOWN_EDITOR_SCRIPT + MARKDOWN_PREVIEW_ASSETS + CHIP_JS + IMAGE_SKELETON,
     nav: adminNav('/admin/tutorials'),
     variant: 'admin',
     path: '/admin/tutorials',

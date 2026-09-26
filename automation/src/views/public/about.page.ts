@@ -12,6 +12,8 @@ import { getSettings } from '../../settings/settings.store';
 import { avatarMark, esc, IMAGE_SKELETON, layout } from '../shared/layout';
 import { LiveProject } from '../../live-projects/live-project.model';
 import { LIVE_PROJECTS_CSS, liveProjectCard } from './live-projects.page';
+import { LIGHTBOX_STYLES } from '../shared/styles/prose.styles';
+import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
 
 const ABOUT_CSS = `
 <style>
@@ -292,19 +294,7 @@ const ABOUT_CSS = `
     .gallery { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
   }
 
-  /* ---------- lightbox ---------- */
-  .lightbox {
-    position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.9);
-    display: flex; align-items: center; justify-content: center;
-    padding: 2rem; cursor: zoom-out;
-  }
-  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; cursor: default; }
-  .lightbox-close {
-    position: absolute; top: 1rem; right: 1.25rem; background: transparent;
-    border: 0; color: #fff; font-size: 2rem; line-height: 1; cursor: pointer;
-    opacity: .8; font-family: inherit;
-  }
-  .lightbox-close:hover { opacity: 1; }
+${LIGHTBOX_STYLES}
 </style>`;
 
 const GALLERY_JS = `
@@ -629,7 +619,7 @@ ${ABOUT_CSS}
 ${liveProjects.length ? LIVE_PROJECTS_CSS : ''}
 ${IMAGE_SKELETON}
   <header class="about-hero">
-    ${avatarMark(s.avatarUrl, s.siteTitle, 'about-avatar')}
+    ${avatarMark(s.avatarUrl, s.siteTitle, 'about-avatar', true)}
     <div>
       <h1>${esc(about.headline || s.siteTitle)}</h1>
       <div class="role">${esc(s.authorRole)}</div>
@@ -668,7 +658,8 @@ ${IMAGE_SKELETON}
             : ''
         }${sections.join('')}`
   }
-${GALLERY_JS}`;
+${GALLERY_JS}
+${LIGHTBOX_SCRIPT}`;
 
   return layout({
     title: `About — ${s.siteTitle}`,

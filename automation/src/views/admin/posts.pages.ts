@@ -9,6 +9,7 @@ import { IMAGE_SKELETON, adminNav, esc, layout } from '../shared/layout';
 import { CHIP_CSS, CHIP_JS } from '../shared/scripts/chip-input';
 import {
   MARKDOWN_EDITOR_SCRIPT,
+  MARKDOWN_PREVIEW_ASSETS,
   MARKDOWN_EDITOR_STYLES,
   markdownEditor,
 } from '../shared/components/markdown-editor';
@@ -462,6 +463,7 @@ ${ADMIN_CSS}
     </div>
   </form>
 ${MARKDOWN_EDITOR_SCRIPT}
+${MARKDOWN_PREVIEW_ASSETS}
 ${DATETIME_FIELD_SCRIPT}
 ${CHIP_JS}
 ${IMAGE_SKELETON}

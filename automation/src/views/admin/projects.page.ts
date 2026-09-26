@@ -10,6 +10,7 @@ import { ADMIN_HERO_STYLES } from '../shared/styles/admin.styles';
 import { CHIP_CSS, CHIP_JS } from '../shared/scripts/chip-input';
 import {
   MARKDOWN_EDITOR_SCRIPT,
+  MARKDOWN_PREVIEW_ASSETS,
   MARKDOWN_EDITOR_STYLES,
   markdownEditor,
 } from '../shared/components/markdown-editor';
@@ -460,6 +461,7 @@ ${CSS}
 </script>
 ${WORD_COUNT_SCRIPT}
 ${MARKDOWN_EDITOR_SCRIPT}
+${MARKDOWN_PREVIEW_ASSETS}
 ${CHIP_JS}
 ${IMAGE_SKELETON}`;
 

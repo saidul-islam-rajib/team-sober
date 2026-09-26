@@ -13,9 +13,9 @@ import { AccountRoutes, accountUrl } from '../../accounts/account.routes';
 import { Comment } from '../../comments/comment.model';
 import { OG_CARD_HEIGHT, OG_CARD_WIDTH } from '../../seo/og-card.svg';
 import { CommentPolicy, ContentPolicy } from '../../shared/config/policies';
-import { PROSE_BUNDLE } from '../shared/styles/prose.styles';
+import { LIGHTBOX_STYLES, PROSE_BUNDLE } from '../shared/styles/prose.styles';
 import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
-import { MERMAID_SCRIPT } from '../shared/scripts/mermaid';
+import { markdownAssets } from '../shared/scripts/markdown';
 
 const FEED_CSS = `
 <style>
@@ -407,7 +407,7 @@ ${FEED_CSS}
       activeTag || query || !showIntro
         ? ''
         : `<div class="hero-byline">
-      ${avatarMark(getSettings().avatarUrl, getSettings().authorName)}
+      ${avatarMark(getSettings().avatarUrl, getSettings().authorName, 'mark', true)}
       <div>
         <div class="who">${esc(getSettings().authorName)}</div>
         <div class="role">${esc(getSettings().authorRole)}</div>
@@ -509,7 +509,7 @@ ${FEED_CSS}
     title: activeTag
       ? `Posts tagged ${activeTag} — ${getSettings().authorName}`
       : `${getSettings().authorName} — ${getSettings().siteTitle}`,
-    body: body + SEARCH_JS,
+    body: `${body}<style>${LIGHTBOX_STYLES}</style>${SEARCH_JS}${LIGHTBOX_SCRIPT}`,
     path: activeTag ? `/tag/${activeTag}` : query ? '/search' : '/',
     image: isHome ? '/og/home.png' : undefined,
     imageWidth: isHome ? 1200 : undefined,
@@ -601,7 +601,7 @@ ${PROSE_BUNDLE}
       <h1>${esc(post.title)}</h1>
       ${post.subtitle ? `<p class="sub">${esc(post.subtitle)}</p>` : ''}
       <div class="byline">
-        ${avatarMark(getSettings().avatarUrl, getSettings().authorName)}
+        ${avatarMark(getSettings().avatarUrl, getSettings().authorName, 'mark', true)}
         <span>
           <span class="who">${esc(getSettings().authorName)}</span><br />
           ${esc(formatDate(post.publishedAt))} · ${mins} min read${post.views ? ` · ${post.views} views` : ''}
@@ -693,7 +693,7 @@ ${PROSE_BUNDLE}
   return layout({
     title: `${post.title} — ${getSettings().authorName}`,
     description: post.subtitle || excerpt(post.content, 150),
-    body: body + LIGHTBOX_SCRIPT + MERMAID_SCRIPT + IMAGE_SKELETON,
+    body: body + LIGHTBOX_SCRIPT + markdownAssets(body) + IMAGE_SKELETON,
     variant: 'default',
     path: `/post/${post.slug}`,
     image: contentImage ?? `/og/post/${post.slug}.png`,

@@ -2,6 +2,7 @@ import { esc } from '../layout';
 import { FIELD_HEAD_STYLES } from '../styles/components.styles';
 import { MD_COLUMN_STYLES, PROSE_STYLES } from '../styles/prose.styles';
 import { wordCounter } from '../scripts/word-count';
+import { KATEX_STYLESHEET, MARKDOWN_SCRIPT } from '../scripts/markdown';
 
 const TOOLBAR_STYLES = `
   .md-editor { display: block; }
@@ -79,8 +80,16 @@ const HELP = `
       <tr><td><code>[text](https://url)</code></td><td>Link</td></tr>
       <tr><td><code>![alt](/uploads/x.png)</code></td><td>Image</td></tr>
       <tr><td><code>\`code\`</code></td><td>Inline code</td></tr>
-      <tr><td><code>\`\`\`cpp … \`\`\`</code></td><td>Code block with language</td></tr>
+      <tr><td><code>\`\`\`cpp … \`\`\`</code></td><td>Code block, highlighted, with a Copy button</td></tr>
+      <tr><td><code>\`\`\`ts title="app.ts"</code></td><td>Code block with a file name above it</td></tr>
+      <tr><td><code>\`\`\`mermaid … \`\`\`</code></td><td>Diagram (flowchart, sequence, state, class, …)</td></tr>
+      <tr><td><code>$E = mc^2$</code> · <code>$$ … $$</code></td><td>Math, inline or on its own lines (<code>\\$</code> for a plain dollar)</td></tr>
       <tr><td><code>&gt; quote</code></td><td>Blockquote</td></tr>
+      <tr><td><code>&gt; [!NOTE]</code> · <code>[!TIP]</code> · <code>[!WARNING]</code></td><td>Callout box (also <code>[!IMPORTANT]</code>, <code>[!CAUTION]</code>)</td></tr>
+      <tr><td><code>- [ ] task</code> · <code>- [x] done</code></td><td>Checklist</td></tr>
+      <tr><td><code>text[^1]</code> + <code>[^1]: note</code></td><td>Footnote, listed at the end</td></tr>
+      <tr><td><code>[[toc]]</code></td><td>Table of contents built from the H2/H3 headings</td></tr>
+      <tr><td><code>&lt;details&gt;&lt;summary&gt;…</code></td><td>Collapsible section · <code>&lt;kbd&gt;Ctrl&lt;/kbd&gt;</code> for keys</td></tr>
       <tr><td><code>- item</code> · <code>1. item</code></td><td>Lists</td></tr>
       <tr><td><code>---</code></td><td>Divider</td></tr>
       <tr><td><code>| a | b |</code></td><td>Tables (GitHub style)</td></tr>
@@ -162,6 +171,10 @@ export function markdownEditor({
     ${help ? HELP : ''}
   </div>`;
 }
+
+// Lets the preview render math, diagrams and code tools like the live page.
+// Include once on any page that uses MARKDOWN_EDITOR_SCRIPT.
+export const MARKDOWN_PREVIEW_ASSETS = KATEX_STYLESHEET + MARKDOWN_SCRIPT;
 
 export const MARKDOWN_EDITOR_SCRIPT = `
 <script>
@@ -352,6 +365,7 @@ export const MARKDOWN_EDITOR_SCRIPT = `
         .then(function (html) {
           preview.innerHTML = html;
           preview.hidden = false;
+          if (window.enhanceMarkdown) window.enhanceMarkdown(preview);
           ta.hidden = true;
           previewBtn.classList.add('active');
           previewBtn.textContent = 'Edit';
