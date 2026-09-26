@@ -315,7 +315,11 @@ ${head}
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     padding-bottom: env(safe-area-inset-bottom);
+    text-align: justify;
+    overflow-wrap: break-word;
   }
+  p, li { hyphens: auto; -webkit-hyphens: auto; }
+  input, textarea, select, pre, code, kbd, samp { text-align: start; }
   a { color: inherit; text-decoration: none; }
   img { max-width: 100%; }
 

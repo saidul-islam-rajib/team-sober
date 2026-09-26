@@ -29,9 +29,6 @@ export const PROSE_STYLES = `
     font-size: 0.92rem;
   }
   .prose .code-long, .prose .link-long { word-break: break-all; }
-  @media (max-width: 640px) {
-    .prose p, .prose li { text-align: left; }
-  }
   .prose pre code {
     background: none; border: 0; padding: 0; font-size: 0.88rem;
     overflow-wrap: normal; word-break: normal;
