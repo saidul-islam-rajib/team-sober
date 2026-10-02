@@ -130,9 +130,24 @@ export const IMAGE_SKELETON = `
 </style>
 <script>
 (function () {
+  // A full-page screenshot squeezed to the column's max height turns into a
+  // thin unreadable strip. Show its top at full width instead; the lightbox
+  // still opens the whole page.
+  function markTall(img) {
+    if (img.classList.contains('is-tall') || !img.closest('.prose')) return;
+    if (img.naturalHeight <= img.naturalWidth * 1.4) return;
+
+    img.classList.add('is-tall');
+    var hint = document.createElement('span');
+    hint.className = 'tall-hint';
+    hint.textContent = 'Click to see the full page';
+    img.insertAdjacentElement('afterend', hint);
+  }
+
   function settle(target, state) {
     if (target && target.tagName === 'IMG' && target.classList.contains('skel')) {
       target.classList.add(state);
+      if (state === 'is-loaded') markTall(target);
     }
   }
 
@@ -149,7 +164,7 @@ export const IMAGE_SKELETON = `
   // An image already in cache can finish before this runs, and its load
   // event is then long gone. Catch those by asking rather than waiting.
   document.querySelectorAll('img.skel').forEach(function (img) {
-    if (img.complete && img.naturalWidth > 0) img.classList.add('is-loaded');
+    if (img.complete && img.naturalWidth > 0) settle(img, 'is-loaded');
   });
 })();
 </script>`;

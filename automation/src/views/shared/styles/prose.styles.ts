@@ -49,6 +49,18 @@ export const PROSE_STYLES = `
   .prose img.skel:not(.is-loaded) { min-height: 220px; width: 100%; }
   /* Portrait shots would otherwise run the full column height. */
   .prose > p > img, .prose > img { max-height: 520px; width: auto; }
+  /* Full-page screenshots: the top of the page at full width, fading out. */
+  .prose img.is-tall {
+    width: 100%; max-height: none; height: min(70vh, 600px);
+    object-fit: cover; object-position: top;
+    -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent);
+    mask-image: linear-gradient(to bottom, #000 78%, transparent);
+    margin-bottom: 0;
+  }
+  .prose .tall-hint {
+    display: block; text-align: center; margin: 0.4rem 0 2rem;
+    font-family: var(--sans); font-size: 0.82rem; color: var(--ink-3);
+  }
   .prose table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 0.95rem; }
   .prose th, .prose td { padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border); text-align: left; }
   .prose th { color: var(--ink); font-weight: 600; }
@@ -244,6 +256,7 @@ export const LIGHTBOX_STYLES = `
   }
   .lightbox img.can-zoom { cursor: zoom-in; }
   .lightbox img.is-actual { max-width: none; max-height: none; cursor: zoom-out; }
+  .lightbox img.is-tall { max-width: min(100%, 1280px); max-height: none; margin: 0 auto; }
   .lightbox-close {
     position: fixed; top: 1rem; right: 1.25rem; z-index: 1;
     background: transparent; border: 0; color: #fff;

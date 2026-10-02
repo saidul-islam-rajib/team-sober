@@ -49,8 +49,16 @@ export const LIGHTBOX_SCRIPT = `
     hint.textContent = 'Click anywhere or press Esc to close';
     box.appendChild(hint);
 
+    // A tall screenshot fitted to the screen is a thin strip again, so it
+    // opens at readable width and scrolls instead.
+    var tall = img.classList.contains('is-tall');
+    if (tall) {
+      full.classList.add('is-tall');
+      hint.textContent = 'Scroll to see the whole page · Esc to close';
+    }
+
     full.addEventListener('load', function () {
-      if (fitsAlready(full)) return;
+      if (tall || fitsAlready(full)) return;
       full.classList.add('can-zoom');
       hint.textContent = 'Click the image to see it full size · Esc to close';
     });
