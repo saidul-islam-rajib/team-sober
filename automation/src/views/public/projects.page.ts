@@ -9,6 +9,7 @@ import {
 } from '../../projects/project.model';
 import { getSettings } from '../../settings/settings.store';
 import { esc, IMAGE_SKELETON, layout } from '../shared/layout';
+import { shareHeadline, shareMeta } from '../shared/share';
 import { PROSE_BUNDLE } from '../shared/styles/prose.styles';
 import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
 import { markdownAssets } from '../shared/scripts/markdown';
@@ -348,6 +349,11 @@ ${PROJECTS_HEAD}
     title: `${project.title} — ${s.siteTitle}`,
     description:
       project.description || `${project.title}, a project by ${s.siteTitle}.`,
+    shareTitle: shareHeadline(project.title, project.description),
+    shareDescription: shareMeta([
+      project.technologies.slice(0, 4).join(', '),
+      `by ${s.authorName}`,
+    ]),
     body: body + LIGHTBOX_SCRIPT + markdownAssets(body),
     path: `/projects/${project.slug}`,
     image: project.coverUrl,

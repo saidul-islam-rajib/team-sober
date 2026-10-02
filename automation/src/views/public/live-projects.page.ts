@@ -2,6 +2,7 @@ import { LiveProject } from '../../live-projects/live-project.model';
 import { hostOf } from '../../settings/settings.model';
 import { getSettings } from '../../settings/settings.store';
 import { esc, IMAGE_SKELETON, layout } from '../shared/layout';
+import { shareHeadline, shareMeta } from '../shared/share';
 import { PROSE_BUNDLE } from '../shared/styles/prose.styles';
 import { LIGHTBOX_SCRIPT } from '../shared/scripts/lightbox';
 
@@ -129,6 +130,8 @@ ${IMAGE_SKELETON}
     description:
       project.description ||
       `${project.title}, a live project by ${s.siteTitle}.`,
+    shareTitle: shareHeadline(project.title, project.description),
+    shareDescription: shareMeta(['Live project', `by ${s.authorName}`]),
     body: body + LIGHTBOX_SCRIPT,
     path: `/live/${project.slug}`,
     image: project.previewImage || project.images[0],

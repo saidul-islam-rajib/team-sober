@@ -9,6 +9,7 @@ import {
 } from '../../tutorials/tutorial.model';
 import { readingMinutes } from '../../posts/post.model';
 import { IMAGE_SKELETON, esc, layout } from '../shared/layout';
+import { shareHeadline, shareMeta } from '../shared/share';
 import {
   NO_PROGRESS_STATE,
   ProgressState,
@@ -272,6 +273,11 @@ export function subjectPage(
     description:
       subject.summary ||
       `${stats.total} tutorials on ${subject.title.toLowerCase()}.`,
+    shareTitle: shareHeadline(subject.title, subject.summary),
+    shareDescription: shareMeta([
+      `${stats.total} ${pluralise(stats.total, 'lesson')}`,
+      `${formatDuration(stats.minutes)} of reading`,
+    ]),
     body: body + PROGRESS_TRACKER_SCRIPT,
     path: `/tutorials/${subject.slug}`,
     head: HEAD,
@@ -362,6 +368,11 @@ export function tutorialPage(
   return layout({
     title: tutorial.title,
     description: tutorial.summary || `${subject.title} tutorial.`,
+    shareTitle: shareHeadline(tutorial.title, tutorial.summary),
+    shareDescription: shareMeta([
+      subject.title,
+      `${readingMinutes(tutorial.content)} min read`,
+    ]),
     body:
       body +
       PROGRESS_TRACKER_SCRIPT +

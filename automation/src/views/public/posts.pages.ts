@@ -8,6 +8,7 @@ import {
   wordCount,
 } from '../../posts/post.model';
 import { avatarMark, esc, IMAGE_SKELETON, layout } from '../shared/layout';
+import { shareHeadline, shareMeta } from '../shared/share';
 import { getSettings } from '../../settings/settings.store';
 import { AccountRoutes, accountUrl } from '../../accounts/account.routes';
 import { Comment } from '../../comments/comment.model';
@@ -701,6 +702,15 @@ ${PROSE_BUNDLE}
   return layout({
     title: `${post.title} — ${getSettings().authorName}`,
     description: post.subtitle || excerpt(post.content, 150),
+    shareTitle: shareHeadline(
+      post.title,
+      post.subtitle || excerpt(post.content, 400),
+    ),
+    shareDescription: shareMeta([
+      `${readingMinutes(post.content)} min read`,
+      post.tags.slice(0, 3).join(', '),
+      `by ${getSettings().authorName}`,
+    ]),
     body: body + LIGHTBOX_SCRIPT + markdownAssets(body) + IMAGE_SKELETON,
     variant: 'default',
     path: `/post/${post.slug}`,

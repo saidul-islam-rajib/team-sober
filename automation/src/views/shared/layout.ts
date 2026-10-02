@@ -10,6 +10,8 @@ export function esc(value: string | number | null | undefined): string {
 interface LayoutOptions {
   title: string;
   description?: string;
+  shareTitle?: string;
+  shareDescription?: string;
   body: string;
   nav?: string;
   variant?: 'default' | 'article' | 'admin';
@@ -155,6 +157,8 @@ export const IMAGE_SKELETON = `
 export function layout({
   title,
   description,
+  shareTitle,
+  shareDescription,
   body,
   nav,
   variant = 'default',
@@ -201,6 +205,8 @@ export function layout({
           : '';
 
   const summary = description || s.shareIntro || s.authorBio || s.siteTagline;
+  const cardTitle = shareTitle || title;
+  const cardSummary = shareDescription || summary;
 
   return `<!doctype html>
 <html lang="en">
@@ -223,8 +229,8 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow" />' : '<meta name="
 <!-- Open Graph: Facebook, LinkedIn, WhatsApp, Slack -->
   <meta property="og:site_name" content="${esc(s.siteTitle)}" />
 <meta property="og:type" content="${esc(ogType)}" />
-<meta property="og:title" content="${esc(title)}" />
-<meta property="og:description" content="${esc(summary)}" />
+<meta property="og:title" content="${esc(cardTitle)}" />
+<meta property="og:description" content="${esc(cardSummary)}" />
 <meta property="og:url" content="${esc(canonical)}" />
 <meta property="og:locale" content="en_US" />
 ${
@@ -248,7 +254,7 @@ ${
         previewUrl.startsWith('https://')
           ? `<meta property="og:image:secure_url" content="${esc(previewUrl)}" />`
           : '',
-        `<meta property="og:image:alt" content="${esc(title)}" />`,
+        `<meta property="og:image:alt" content="${esc(cardTitle)}" />`,
       ]
         .filter(Boolean)
         .join('\n')
@@ -263,8 +269,8 @@ ${
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="${previewUrl ? 'summary_large_image' : 'summary'}" />
-<meta name="twitter:title" content="${esc(title)}" />
-<meta name="twitter:description" content="${esc(summary)}" />
+<meta name="twitter:title" content="${esc(cardTitle)}" />
+<meta name="twitter:description" content="${esc(cardSummary)}" />
 ${previewUrl ? `<meta name="twitter:image" content="${esc(previewUrl)}" />` : ''}
 ${styleLinks(styles)}
 ${head}
