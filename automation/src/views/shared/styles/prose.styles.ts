@@ -256,7 +256,16 @@ export const LIGHTBOX_STYLES = `
   }
   .lightbox img.can-zoom { cursor: zoom-in; }
   .lightbox img.is-actual { max-width: none; max-height: none; cursor: zoom-out; }
-  .lightbox img.is-tall { max-width: min(100%, 1280px); max-height: none; margin: 0 auto; }
+  /*
+   * A flex item stretches to the box's height by default, which squeezed a
+   * full-page screenshot back into a thin strip. Pin it to the top at a
+   * readable width and let the box scroll.
+   */
+  .lightbox img.is-tall {
+    align-self: flex-start; flex-shrink: 0;
+    width: min(100%, 1280px); max-width: none; height: auto; max-height: none;
+    margin: 0 auto;
+  }
   .lightbox-close {
     position: fixed; top: 1rem; right: 1.25rem; z-index: 1;
     background: transparent; border: 0; color: #fff;
